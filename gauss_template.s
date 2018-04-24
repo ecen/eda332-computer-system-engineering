@@ -24,18 +24,32 @@ exit:
 
 eliminate:
 		# If necessary, create stack frame, and save return address from ra
-		addiu	$sp, $sp, -4			# allocate stack frame
-		sw	$ra, 0($sp)			# done saving registers
+		addiu	$sp, $sp, -4		# allocate stack frame
+		sw	$ra, 0($sp)		# done saving registers
 		
-		##
-		## Implement eliminate here
-		## 
+		## ELIMINATE IMPLEMENTATION
+		
+		addiu	$t0, $a0, 0		# t0: pointer to current element
+		mul	$t1, $a1, $a1		# t1: total nr of elements in matrix
+		sll	$t3, $t1, 2		# Multiply t1 by 4
+		addu	$t2, $a0, $t3		# t2: pointer to last element
+		addiu	$t2, $t2, -4		#     remove 4 to compensate for bne behavior
+		
+loop:		lwc1	$f0, 0($t0)		# f0 = current element
 
-		lw	$ra, 0($sp)			# done restoring registers
-		addiu	$sp, $sp, 4			# remove stack frame
+		add.s	$f0, $f0, $f0		# Do stuff with f0
+		
+		swc1	$f0, 0($t0)		# Store f0 back into memory
+		bne	$t0, $t2, loop		# Loop if current element was not the last one
+		addiu	$t0, $t0, 4		# Increase element pointer
+		
+		## ELIMINATE IMPLEMENTATION END
 
-		jr	$ra				# return from subroutine
-		nop					# this is the delay slot associated with all types of jumps
+		lw	$ra, 0($sp)		# done restoring registers
+		addiu	$sp, $sp, 4		# remove stack frame
+
+		jr	$ra			# return from subroutine
+		nop				# this is the delay slot associated with all types of jumps
 
 ################################################################################
 # getelem - Get address and content of matrix element A[a][b].
