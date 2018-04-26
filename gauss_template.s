@@ -29,19 +29,41 @@ eliminate:
 		
 		## ELIMINATE IMPLEMENTATION
 		
-		addiu	$t0, $a0, 0		# t0: pointer to current element
+		subiu	$t5, $a1, 1
+		sll	$t5, $t5, 2		#t5 = (N-1)*4
+		addiu	$t8, $t5, 4		#t8 = N*4
+		addiu	$t0, $a0, 0		# t0: pointer to current element    (k)
 		mul	$t1, $a1, $a1		# t1: total nr of elements in matrix
 		sll	$t3, $t1, 2		# Multiply t1 by 4
-		addu	$t2, $a0, $t3		# t2: pointer to last element
-		addiu	$t2, $t2, -4		#     remove 4 to compensate for bne behavior
+		addu	$t9, $a0, $t3		# t2: pointer to last element
+		addiu	$t2, $t9, -8		#     remove 4 to compensate for bne behavior
+		addu	$t2, $t9, $t5		#     remove 4 to compensate for bne behavior
 		
-loop:		lwc1	$f0, 0($t0)		# f0 = current element
-
-		add.s	$f0, $f0, $f0		# Do stuff with f0
+		addiu	$t3, $a1, 1
+		sll	$t3, $t3, 2		# t3 <- (N+1)*4
+		addu	$t6, $zero, $a0		#t6: Pointer to first column in first row.
+		lwc1	$f3, one		# f3 = 1
 		
-		swc1	$f0, 0($t0)		# Store f0 back into memory
-		bne	$t0, $t2, loop		# Loop if current element was not the last one
-		addiu	$t0, $t0, 4		# Increase element pointer
+		
+pivot_loop:	lwc1	$f0, 0($t0)		# f0 = current pivot element
+		addiu	$t4, $t0, 4		#t4 <- j
+		addu	$t7, $t6, $t5		# Pointer to last element of row.
+		
+right_loop:	lwc1	$f1, 0($t4)		# f1 = current row element
+		div.s	$f1, $f1, $f0		# f1 = f1/f0
+		swc1	$f1, 0($t4)
+		bne	$t7, $t4, right_loop
+		addiu	$t4, $t4, 4
+		
+		
+		swc1	$f3, 0($t0)		#pivot = 1
+		
+		addu	$t6, $t6, $t8		# Go down a row
+		bne	$t0, $t2, pivot_loop	# Loop if current element was not the last one
+		addu	$t0, $t0, $t3		# Increase element pointer   TODO hardcode this
+		
+		swc1	$f3, 0($t0)
+		
 		
 		## ELIMINATE IMPLEMENTATION END
 
@@ -149,7 +171,8 @@ spaces:
 		.asciiz "   "   		# spaces to insert between numbers
 newline:
 		.asciiz "\n"  			# newline
-
+one:
+		.float 1.0
 ## Input matrix: (4x4) ##
 matrix_4x4:	
 		.float 57.0
