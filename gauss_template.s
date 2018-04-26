@@ -36,9 +36,10 @@ eliminate:
 		mul	$t1, $a1, $a1		# t1: total nr of elements in matrix
 		sll	$t3, $t1, 2		# Multiply t1 by 4
 		addu	$t9, $a0, $t3		# t2: pointer to last element
-		addiu	$t2, $t9, -8		#     remove 4 to compensate for bne behavior
-		addu	$t2, $t9, $t5		#     remove 4 to compensate for bne behavior
-		
+		addiu	$t2, $t9, -4		#     remove 4 to compensate for bne behavior
+		subu	$t2, $t9, $t5		#     remove 4 to compensate for bne behavior
+		subu	$t2, $t2, $t5		#     remove 4 to compensate for bne behavior
+				
 		addiu	$t3, $a1, 1
 		sll	$t3, $t3, 2		# t3 <- (N+1)*4
 		addu	$t6, $zero, $a0		#t6: Pointer to first column in first row.
