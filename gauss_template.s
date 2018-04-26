@@ -39,6 +39,7 @@ eliminate:
 		addiu	$t2, $t9, -4		#     remove 4 to compensate for bne behavior
 		subu	$t2, $t9, $t5		#     remove 4 to compensate for bne behavior
 		subu	$t2, $t2, $t5		#     remove 4 to compensate for bne behavior
+		addiu	$s1, $zero, 0		# s1 = k
 				
 		addiu	$t3, $a1, 1
 		sll	$t3, $t3, 2		# t3 <- (N+1)*4
@@ -55,11 +56,29 @@ right_loop:	lwc1	$f1, 0($t4)		# f1 = current row element
 		swc1	$f1, 0($t4)
 		bne	$t7, $t4, right_loop
 		addiu	$t4, $t4, 4
-		
-		
 		swc1	$f3, 0($t0)		#pivot = 1
 		
+		
+		addu	$t4, $t0, $t8		#t4 <- i
+		subiu	$s2, $a1, $s1
+		mulu	$s2, $a1, $s2		#Calculate the last element for the down loop
+down_loop:	
+		
+		addiu	$s0, $zero, 4		#s0 <- j
+		addu	$s3, $a1, $s1		# s3 = N - K
+		subiu	$s3, $s3, 1
+		sll	$s5, $s3, 2		#s5 = pointer to first element in row  ###TODO 
+		
+right_loop2:	addu	$s4, t4, $s5
+		bne	$s3, $s0, right_loop2
+		addiu	$s0, $s0, 4
+		
+		bne	$s2, $t4, down_loop
+		addu	$t4, $t4, $t8
+		
+		
 		addu	$t6, $t6, $t8		# Go down a row
+		addiu	$s1, $s1, 1		# s1++
 		bne	$t0, $t2, pivot_loop	# Loop if current element was not the last one
 		addu	$t0, $t0, $t3		# Increase element pointer   TODO hardcode this
 		
