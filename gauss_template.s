@@ -30,32 +30,31 @@ eliminate:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# Constants
-		subiu	$t5, $a1, 1
-		sll	$t5, $t5, 2		# t5 = (N - 1) * 4
-		addiu	$t8, $t5, 4		# t8 = N * 4
-		addiu	$t3, $a1, 1		# t3 = N + 1
-		sll	$t3, $t3, 2		# t3 = (N + 1) * 4
-		lwc1	$f3, one		# f3 = 1
-		sub.s	$f7, $f7, $f7		# f7 = 0
+		subiu	$s0, $a1, 1
+		sll	$s0, $s0, 2		# s0 = (N - 1) * 4
+		addiu	$s1, $s0, 4		# s1 = N * 4
+		addiu	$s2, $a1, 1		# N + 1
+		sll	$s2, $s2, 2		# s2 = (N + 1) * 4
+		lwc1	$f11, one		# f11 = 1
+		sub.s	$f10, $f10, $f10	# f10 = 0
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		sll	$t4, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
 		addu	$t9, $a0, $t4		# Pointer to element N * N
 		addiu	$t2, $t9, -4		# Pointer to element(N * N) - 1
-		subu	$t2, $t9, $t5		# Pointer to element(N * (N - 1)) - 1
-		subu	$t2, $t2, $t5		# t2: Pointer to element (N * (N - 2)) - 1.
+		subu	$t2, $t9, $s0		# Pointer to element(N * (N - 1)) - 1
+		subu	$t2, $t2, $s0		# t2: Pointer to element (N * (N - 2)) - 1.
 		
 		# Pivot Loop Setup
 		addiu	$t0, $a0, 0		# t0: pointer to current pivot
-		addiu	$s1, $zero, 1		# s1 = K: index of current pivot (1 to N)
 		addu	$t6, $zero, $a0		# t6: pointer to first element in current row
-		mulu	$s5, $a1, $t5		# N * (N - 1) * 4
+		mulu	$s5, $a1, $s0		# N * (N - 1) * 4
 		addu	$s5, $t0, $s5		# s5 = t0 + N * (N - 1) * 4: Pointer to the last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	lwc1	$f0, 0($t0)		# f0 = current pivot element
 		## Right Loop Setup
 		addiu	$t4, $t0, 4		# t4: pointer to current element on row
-		addu	$t7, $t6, $t5		# t7: Pointer to last element of row.
+		addu	$t7, $t6, $s0		# t7: Pointer to last element of row.
 		## Right Loop: Loops over all elements on pivot row to the right of pivot element
 right_loop:	lwc1	$f1, 0($t4)		# f1: current element on row
 		div.s	$f1, $f1, $f0		# f1 = f1/f0
@@ -64,21 +63,21 @@ right_loop:	lwc1	$f1, 0($t4)		# f1: current element on row
 		addiu	$t4, $t4, 4
 		## Right Loop End
 		
-		swc1	$f3, 0($t0)		# pivot = 1
+		swc1	$f11, 0($t0)		# pivot = 1
 		
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
 		addiu	$s4, $t7, 0		# s4 = last element of pivot row: Pointer to the last element of current row_loop row.
-		addu	$s7, $t0, $t8		# s7 = t0 + N * 4: Pointer to current col element
+		addu	$s7, $t0, $s1		# s7 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	
 		lwc1	$f6, 0($s7)		# f6: current col element
 		### Row Loop Setup
-		addiu	$s2, $zero, 4		# s2: Pointer offset from column element to current row element
-		addu	$s4, $s4, $t8		# Point s4 to last element of next row
+		addiu	$t8, $zero, 4		# t8: Pointer offset from column element to current row element
+		addu	$s4, $s4, $s1		# Point s4 to last element of next row
 		### Row Loop: Iterate over each element in the row to the the right of C
-row_loop:	addu	$s6, $s7, $s2		# s6: Pointer to current row element
-		addu	$t1, $t0, $s2		# t1: Pointer to current pivot row element
+row_loop:	addu	$s6, $s7, $t8		# s6: Pointer to current row element
+		addu	$t1, $t0, $t8		# t1: Pointer to current pivot row element
 		lwc1	$f5, 0($t1)		# f5: current pivot row element
 		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
 		lwc1	$f4, 0($s6)		# f4 = A[i][j]
@@ -86,23 +85,22 @@ row_loop:	addu	$s6, $s7, $s2		# s6: Pointer to current row element
 		swc1	$f4, 0($s6)		# Store
 		
 		bne	$s6, $s4, row_loop
-		addiu	$s2, $s2, 4		# Increase row element offset to point to next row element
+		addiu	$t8, $t8, 4		# Increase row element offset to point to next row element
 		### Row Loop End
 		
-		swc1	$f7, 0($s7)		# A[i][k] = 0. (Set current col element = 0.)
-		addu	$s4, $s4, $t8		# s4: Pointer to the last element of next row
+		swc1	$f10, 0($s7)		# A[i][k] = 0. (Set current col element = 0.)
+		addu	$s4, $s4, $s1		# s4: Pointer to the last element of next row
 		bne	$s7, $s5, column_loop
-		addu	$s7, $s7, $t8		# Point t7 to next col element
+		addu	$s7, $s7, $s1		# Point t7 to next col element
 		## Column Loop End
 		
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
-		addu	$t6, $t6, $t8		# t6 += N * 4. Point t6 to first element on next row.
-		addiu	$s1, $s1, 1		# s1++. Increase pivot index.
+		addu	$t6, $t6, $s1		# t6 += N * 4. Point t6 to first element on next row.
 		bne	$t0, $t2, pivot_loop	# Loop if current pivot was not the last element
-		addu	$t0, $t0, $t3		# t0 += (N + 1) * 4. Point t0 to next pivot element.
+		addu	$t0, $t0, $s2		# t0 += (N + 1) * 4. Point t0 to next pivot element.
 		# Pivot Loop End
 		
-		swc1	$f3, 0($t0)		# Pivot loop is only run N-1 times. This sets pivot element N to 1.
+		swc1	$f11, 0($t0)		# Pivot loop is only run N-1 times. This sets pivot element N to 1.
 		
 		
 		###### ELIMINATE IMPLEMENTATION END
