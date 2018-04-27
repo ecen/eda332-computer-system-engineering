@@ -36,6 +36,7 @@ eliminate:
 		addiu	$t3, $a1, 1		# t3 = N + 1
 		sll	$t3, $t3, 2		# t3 = (N + 1) * 4
 		lwc1	$f3, one		# f3 = 1
+		sub.s	$f7, $f7, $f7		# f7 = 0
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		sll	$t4, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
@@ -71,6 +72,7 @@ right_loop:	lwc1	$f1, 0($t4)		# f1: current element on row
 		addu	$s7, $t0, $t8		# s7 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	
+		lwc1	$f6, 0($s7)		# f6: current col element
 		### Row Loop Setup
 		addiu	$s2, $zero, 4		# s2: Pointer offset from column element to current row element
 		addu	$s4, $s4, $t8		# Point s4 to last element of next row
@@ -78,7 +80,6 @@ column_loop:
 row_loop:	addu	$s6, $s7, $s2		# s6: Pointer to current row element
 		addu	$t1, $t0, $s2		# t1: Pointer to current pivot row element
 		lwc1	$f5, 0($t1)		# f5: current pivot row element
-		lwc1	$f6, 0($s7)		# f6: current col element
 		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
 		lwc1	$f4, 0($s6)		# f4 = A[i][j]
 		sub.s	$f4, $f4, $f5		# f4 -= f5
@@ -88,6 +89,7 @@ row_loop:	addu	$s6, $s7, $s2		# s6: Pointer to current row element
 		addiu	$s2, $s2, 4		# Increase row element offset to point to next row element
 		### Row Loop End
 		
+		swc1	$f7, 0($s7)		# A[i][k] = 0. (Set current col element = 0.)
 		addu	$s4, $s4, $t8		# s4: Pointer to the last element of next row
 		bne	$s7, $s5, column_loop
 		addu	$s7, $s7, $t8		# Point t7 to next col element
