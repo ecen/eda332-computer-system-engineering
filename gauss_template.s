@@ -63,9 +63,26 @@ right_loop:	lwc1	$f1, 0($t4)		# f1: current element on row
 		swc1	$f3, 0($t0)		# pivot = 1
 		
 		## Down Loop Setup
+#		addu	$t4, $t0, $t8		#t4 <- i
+#		subiu	$s2, $a1, $s1
+#		mulu	$s2, $a1, $s2		#Calculate the last element for the down loop
+#down_loop:	
+		
+#		addiu	$s0, $zero, 4		#s0 <- j
+#		addu	$s3, $a1, $s1		# s3 = N - K
+#		subiu	$s3, $s3, 1
+#		sll	$s5, $s3, 2		#s5 = pointer to first element in row  ###TODO 
+		
+#right_loop2:	addu	$s4, t4, $s5
+		#bne	$s3, $s0, right_loop2
+		#addiu	$s0, $s0, 4
+		
+		#bne	$s2, $t4, down_loop
+		#addu	$t4, $t4, $t8
 		## Down Loop End
 		
 		addu	$t6, $t6, $t8		# t6 += N * 4. Point t6 to first element on next row.
+		#addiu	$s1, $s1, 1		# s1++
 		bne	$t0, $t2, pivot_loop	# Loop if current pivot was not the last element
 		addu	$t0, $t0, $t3		# t0 += (N + 1) * 4. Point t0 to next pivot element.
 		# Pivot Loop End
