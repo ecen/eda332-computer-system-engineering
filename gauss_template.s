@@ -35,7 +35,6 @@ eliminate:
 		addiu	$t8, $t5, 4		# t8 = N * 4
 		addiu	$t3, $a1, 1		# t3 = N + 1
 		sll	$t3, $t3, 2		# t3 = (N + 1) * 4
-		addu	$t6, $zero, $a0		# t6: Pointer to first column in first row.
 		
 		lwc1	$f3, one		# f3 = 1
 		mul	$t1, $a1, $a1		# t1: total nr of elements in matrix
@@ -44,31 +43,34 @@ eliminate:
 		addiu	$t2, $t9, -4		# t2: pointer to element (N * N) - 1
 		subu	$t2, $t9, $t5		# t2: pointer to element (N * (N - 1)) - 1
 		subu	$t2, $t2, $t5		# t2: pointer to element (N * (N - 2)) - 1
-
 		
 		# Pivot Loop Setup
 		addiu	$t0, $a0, 0		# t0: pointer to current pivot
+		addu	$t6, $zero, $a0		# t6: pointer to first element in current row
 		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	lwc1	$f0, 0($t0)		# f0 = current pivot element
-		#Right Loop Setup
+		## Right Loop Setup
 		addiu	$t4, $t0, 4		# t4: pointer to current element on row
 		addu	$t7, $t6, $t5		# t7: Pointer to last element of row.
-		# Right Loop: Loops over all elements on pivot row to the right of pivot element
+		## Right Loop: Loops over all elements on pivot row to the right of pivot element
 right_loop:	lwc1	$f1, 0($t4)		# f1: current element on row
 		div.s	$f1, $f1, $f0		# f1 = f1/f0
 		swc1	$f1, 0($t4)
 		bne	$t7, $t4, right_loop
 		addiu	$t4, $t4, 4
-		# Right Loop End
+		## Right Loop End
 		
 		swc1	$f3, 0($t0)		# pivot = 1
 		
-		addu	$t6, $t6, $t8		# Go down a row
-		bne	$t0, $t2, pivot_loop	# Loop if current element was not the last one
-		addu	$t0, $t0, $t3		# Increase element pointer   TODO hardcode this
+		## Down Loop Setup
+		## Down Loop End
+		
+		addu	$t6, $t6, $t8		# t6 += N * 4. Point t6 to first element on next row.
+		bne	$t0, $t2, pivot_loop	# Loop if current pivot was not the last element
+		addu	$t0, $t0, $t3		# t0 += (N + 1) * 4. Point t0 to next pivot element.
 		# Pivot Loop End
 		
-		swc1	$f3, 0($t0)		# Pivot loop is run N-1 times. Sets pivot element N to 1.
+		swc1	$f3, 0($t0)		# Pivot loop is only run N-1 times. This sets pivot element N to 1.
 		
 		
 		###### ELIMINATE IMPLEMENTATION END
