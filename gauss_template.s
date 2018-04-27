@@ -27,46 +27,51 @@ eliminate:
 		addiu	$sp, $sp, -4		# allocate stack frame
 		sw	$ra, 0($sp)		# done saving registers
 		
-		## ELIMINATE IMPLEMENTATION
+		###### ELIMINATE IMPLEMENTATION
 		
+		# Constants
 		subiu	$t5, $a1, 1
-		sll	$t5, $t5, 2		#t5 = (N-1)*4
-		addiu	$t8, $t5, 4		#t8 = N*4
-		addiu	$t0, $a0, 0		# t0: pointer to current element    (k)
-		mul	$t1, $a1, $a1		# t1: total nr of elements in matrix
-		sll	$t3, $t1, 2		# Multiply t1 by 4
-		addu	$t9, $a0, $t3		# t2: pointer to last element
-		addiu	$t2, $t9, -4		#     remove 4 to compensate for bne behavior
-		subu	$t2, $t9, $t5		#     remove 4 to compensate for bne behavior
-		subu	$t2, $t2, $t5		#     remove 4 to compensate for bne behavior
-				
-		addiu	$t3, $a1, 1
-		sll	$t3, $t3, 2		# t3 <- (N+1)*4
-		addu	$t6, $zero, $a0		#t6: Pointer to first column in first row.
+		sll	$t5, $t5, 2		# t5 = (N - 1) * 4
+		addiu	$t8, $t5, 4		# t8 = N * 4
+		addiu	$t3, $a1, 1		# t3 = N + 1
+		sll	$t3, $t3, 2		# t3 = (N + 1) * 4
+		addu	$t6, $zero, $a0		# t6: Pointer to first column in first row.
+		
 		lwc1	$f3, one		# f3 = 1
+		mul	$t1, $a1, $a1		# t1: total nr of elements in matrix
+		sll	$t4, $t1, 2		# Convert t1 to pointer offset by multiply by 4
+		addu	$t9, $a0, $t4		# t9: pointer to element N * N
+		addiu	$t2, $t9, -4		# t2: pointer to element (N * N) - 1
+		subu	$t2, $t9, $t5		# t2: pointer to element (N * (N - 1)) - 1
+		subu	$t2, $t2, $t5		# t2: pointer to element (N * (N - 2)) - 1
+
 		
-		
+		# Pivot Loop Setup
+		addiu	$t0, $a0, 0		# t0: pointer to current pivot
+		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	lwc1	$f0, 0($t0)		# f0 = current pivot element
-		addiu	$t4, $t0, 4		#t4 <- j
-		addu	$t7, $t6, $t5		# Pointer to last element of row.
-		
-right_loop:	lwc1	$f1, 0($t4)		# f1 = current row element
+		#Right Loop Setup
+		addiu	$t4, $t0, 4		# t4: pointer to current element on row
+		addu	$t7, $t6, $t5		# t7: Pointer to last element of row.
+		# Right Loop: Loops over all elements on pivot row to the right of pivot element
+right_loop:	lwc1	$f1, 0($t4)		# f1: current element on row
 		div.s	$f1, $f1, $f0		# f1 = f1/f0
 		swc1	$f1, 0($t4)
 		bne	$t7, $t4, right_loop
 		addiu	$t4, $t4, 4
+		# Right Loop End
 		
-		
-		swc1	$f3, 0($t0)		#pivot = 1
+		swc1	$f3, 0($t0)		# pivot = 1
 		
 		addu	$t6, $t6, $t8		# Go down a row
 		bne	$t0, $t2, pivot_loop	# Loop if current element was not the last one
 		addu	$t0, $t0, $t3		# Increase element pointer   TODO hardcode this
+		# Pivot Loop End
 		
-		swc1	$f3, 0($t0)
+		swc1	$f3, 0($t0)		# Pivot loop is run N-1 times. Sets pivot element N to 1.
 		
 		
-		## ELIMINATE IMPLEMENTATION END
+		###### ELIMINATE IMPLEMENTATION END
 
 		lw	$ra, 0($sp)		# done restoring registers
 		addiu	$sp, $sp, 4		# remove stack frame
