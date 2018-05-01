@@ -118,10 +118,9 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		addiu	$s4, $s7, 0		# s4 = last element of pivot row: Pointer to the last element of current row_loop row.
 		addu	$t2, $t0, $s1		# t2 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
-column_loop:	
-		lwc1	$f6, 0($t2)		# f6: current col element
+column_loop:	lwc1	$f6, 0($t2)		# f6: current col element
 		### Row Loop Setup
-		li	$t3, 4		# t3: Pointer offset from column element to current row element
+		li	$t3, 4			# t3: Pointer offset from column element to current row element
 		addu	$s4, $s4, $s1		# Point s4 to last element of next row
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
@@ -137,7 +136,7 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		### Row Loop End
 		
 		swc1	$f10, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
-		addu	$s4, $s4, $s1		# s4: Pointer to the last element of next row
+		#addu	$s4, $s4, $s1		# s4: Pointer to the last element of next row
 		bne	$t2, $s5, column_loop
 		addu	$t2, $t2, $s1		# Point t2 to next col element
 		## Column Loop End
