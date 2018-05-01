@@ -4,11 +4,11 @@ start:
 		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
 		li	$a1, 24    		# a1 = N (number of elements per row)
 						# <debug>
-		jal 	print_matrix	    	# print matrix before elimination
+		#jal 	print_matrix	    	# print matrix before elimination
 		nop				# </debug>
 		jal 	eliminate		# triangularize matrix!
 		nop				# <debug>
-		jal 	print_matrix		# print matrix after elimination
+		#jal 	print_matrix		# print matrix after elimination
 		nop				# </debug>
 		jal 	exit
 
@@ -26,6 +26,11 @@ eliminate:
 		
 		
 		###### ELIMINATE IMPLEMENTATION
+		
+		# PERFORMANCE RECORD
+		# 214K Cycles
+		# N-Way, set size 2, 8 blocks, block size 4
+		# Memory 30/6, write buffer 4
 		
 		# REGISTER USAGE TABLE
 		#
