@@ -80,15 +80,16 @@ eliminate:
 		# Constants
 		sll	$s1, $a1, 2		# s1 = N * 4
 		subiu	$s0, $s1, 4		# s0 = (N - 1) * 4
-		addiu	$s2, $s1, 4		# s0 = (N + 1) * 4
+		addiu	$s2, $s1, 4		# s2 = (N + 1) * 4
 		
 		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
 		lwc1	$f11, one		# f11 = 1
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
-		sll	$t4, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
-		addu	$t9, $a0, $t4		# Pointer to element N * N (Outside matrix)
-		subu	$s3, $t9, $s1		# Pointer to element N * N - N
+		
+		sll	$s3, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
+		addu	$s3, $a0, $s3		# Pointer to element N * N (Outside matrix)
+		subu	$s3, $s3, $s1		# Pointer to element N * N - N
 		subiu	$s3, $s3, 8		# s3: Pointer to element N * N - N - 2 (Second last pivot element)
 		
 		# Pivot Loop Setup
@@ -154,40 +155,6 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 
 		jr	$ra			# return from subroutine
 		nop				# this is the delay slot associated with all types of jumps
-
-################################################################################
-# getelem - Get address and content of matrix element A[a][b].
-#
-# Argument registers $a0..$a3 are preserved across calls
-#
-# Args:		$a0  - base address of matrix (A)
-#			$a1  - number of elements per row (N)
-#			$a2  - row number (a)
-#			$a3  - column number (b)
-#						
-# Returns:	$v0  - Address to A[a][b]
-#		$f0  - Contents of A[a][b] (single precision)
-getelem:
-		addiu	$sp, $sp, -12			# allocate stack frame
-		sw	$s2, 8($sp)
-		sw	$s1, 4($sp)
-		sw	$s0, 0($sp)			# done saving registers
-		
-		sll	$s2, $a1, 2			# s2 = 4*N (number of bytes per row)
-		multu	$a2, $s2			# result will be 32-bit unless the matrix is huge
-		mflo	$s1				# s1 = a*s2
-		addu	$s1, $s1, $a0			# Now s1 contains address to row a
-		sll	$s0, $a3, 2			# s0 = 4*b (byte offset of column b)
-		addu	$v0, $s1, $s0			# Now we have address to A[a][b] in v0...
-		l.s	$f0, 0($v0)			# ... and contents of A[a][b] in f0.
-		
-		lw	$s2, 8($sp)
-		lw	$s1, 4($sp)
-		lw	$s0, 0($sp)			# done restoring registers
-		addiu	$sp, $sp, 12			# remove stack frame
-		
-		jr	$ra				# return from subroutine
-		nop					# this is the delay slot associated with all types of jumps
 
 ################################################################################
 # print_matrix
