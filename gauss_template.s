@@ -1,8 +1,8 @@
 ### Text segment
 		.text
 start:
-		la	$a0, matrix_4x4		# a0 = A (base address of matrix)
-		li	$a1, 4    		# a1 = N (number of elements per row)
+		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
+		li	$a1, 24    		# a1 = N (number of elements per row)
 						# <debug>
 		jal 	print_matrix	    	# print matrix before elimination
 		nop				# </debug>
@@ -23,9 +23,7 @@ exit:
 #		$a1  - number of elements per row (N)
 
 eliminate:
-		# If necessary, create stack frame, and save return address from ra
-		addiu	$sp, $sp, -4		# allocate stack frame
-		sw	$ra, 0($sp)		# done saving registers
+		
 		
 		###### ELIMINATE IMPLEMENTATION
 		
@@ -150,8 +148,7 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		
 		###### ELIMINATE IMPLEMENTATION END
 
-		lw	$ra, 0($sp)		# done restoring registers
-		addiu	$sp, $sp, 4		# remove stack frame
+		
 
 		jr	$ra			# return from subroutine
 		nop				# this is the delay slot associated with all types of jumps
