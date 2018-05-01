@@ -28,9 +28,9 @@ eliminate:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 214K Cycles
+		# 205K Cycles
 		# N-Way, set size 2, 8 blocks, block size 4
-		# Memory 30/6, write buffer 4
+		# Memory 30/6, write buffer 8
 		
 		# REGISTER USAGE TABLE
 		#
@@ -101,14 +101,15 @@ eliminate:
 		mulu	$s5, $a1, $s0		# N * (N - 1) * 4
 		addu	$s5, $t0, $s5		# s5 = t0 + N * (N - 1) * 4: Pointer to the last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
-pivot_loop:	lwc1	$f0, 0($t0)		# f0 = current pivot element
+pivot_loop:	
 		## Right Loop Setup
 		addiu	$t1, $t0, 4		# t1: pointer to current element on row
 		addu	$s7, $s6, $s0		# s7: Pointer to last element of row.
+		lwc1	$f0, 0($t0)		# f0 = current pivot element
 		## Right Loop: Loops over all elements on pivot row to the right of pivot element
 right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		div.s	$f1, $f1, $f0		# f1 = f1/f0
-		swc1	$f1, 0($t1)
+		swc1	$f1, 0($t1)		# Store
 		bne	$s7, $t1, right_loop
 		addiu	$t1, $t1, 4
 		## Right Loop End
