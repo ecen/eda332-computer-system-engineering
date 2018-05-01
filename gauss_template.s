@@ -128,8 +128,8 @@ column_loop:	lwc1	$f6, 0($t2)		# f6: current col element
 row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row	
 		lwc1	$f5, 0($t5)		# f5: current pivot row element
-		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
 		lwc1	$f4, 0($t4)		# f4 = A[i][j]
+		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
 		sub.s	$f4, $f4, $f5		# f4 -= f5
 		swc1	$f4, 0($t4)		# Store
 		
