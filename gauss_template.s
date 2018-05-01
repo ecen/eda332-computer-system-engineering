@@ -1,8 +1,8 @@
 ### Text segment
 		.text
 start:
-		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
-		li	$a1, 24    		# a1 = N (number of elements per row)
+		la	$a0, matrix_4x4		# a0 = A (base address of matrix)
+		li	$a1, 4    		# a1 = N (number of elements per row)
 						# <debug>
 		jal 	print_matrix	    	# print matrix before elimination
 		nop				# </debug>
@@ -78,18 +78,16 @@ eliminate:
 		# -------------------------------------------------------------------------
 		
 		# Constants
-		subiu	$s0, $a1, 1
-		sll	$s0, $s0, 2		# s0 = (N - 1) * 4
-		addiu	$s1, $s0, 4		# s1 = N * 4
-		addiu	$s2, $a1, 1		# N + 1
-		sll	$s2, $s2, 2		# s2 = (N + 1) * 4
-		sub.s	$f10, $f10, $f10	# f10 = 0
+		sll	$s1, $a1, 2		# s1 = N * 4
+		subiu	$s0, $s1, 4		# s0 = (N - 1) * 4
+		addiu	$s2, $s1, 4		# s0 = (N + 1) * 4
+		
+		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
 		lwc1	$f11, one		# f11 = 1
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		sll	$t4, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
 		addu	$t9, $a0, $t4		# Pointer to element N * N (Outside matrix)
-		#addiu	$s3, $t9, -4		# Pointer to element (N * N) - 1
 		subu	$s3, $t9, $s1		# Pointer to element N * N - N
 		subiu	$s3, $s3, 8		# s3: Pointer to element N * N - N - 2 (Second last pivot element)
 		
@@ -136,7 +134,6 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		### Row Loop End
 		
 		swc1	$f10, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
-		#addu	$s4, $s4, $s1		# s4: Pointer to the last element of next row
 		bne	$t2, $s5, column_loop
 		addu	$t2, $t2, $s1		# Point t2 to next col element
 		## Column Loop End
