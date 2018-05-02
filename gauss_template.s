@@ -4,11 +4,11 @@ start:
 		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
 		li	$a1, 24    		# a1 = N (number of elements per row)
 						# <debug>
-		#jal 	print_matrix	    	# print matrix before elimination
+		jal 	print_matrix	    	# print matrix before elimination
 		nop				# </debug>
 		jal 	eliminate		# triangularize matrix!
 		nop				# <debug>
-		#jal 	print_matrix		# print matrix after elimination
+		jal 	print_matrix		# print matrix after elimination
 		nop				# </debug>
 		jal 	exit
 
@@ -69,16 +69,16 @@ eliminate:
 		# -------------------------------------------------------------------------
 		# f0: Current pivot element.				Pivot Loop
 		# f1: Current element on row.				Right Loop
-		# f2:
-		# f3: 
-		# f4: A[i][j] - A[i][k] * A[k][j]			Row Loop
-		# f5: A[i][k] * A[k][j]					Row Loop
-		# f6: Current column element.				Column Loop
+		# f2: Current column element.				Column Loop
+		# f3: A[i][j] - A[i][k] * A[k][j]			Row Loop
+		# f4: A[i][k] * A[k][j]					Row Loop
+		# f5 = 0						CONST
+		# f6 = 1						CONST
 		# f7: 
 		# f8: 
 		# f9: 
-		# f10 = 0						CONST
-		# f11 = 1						CONST
+		# f10: 
+		# f11: 
 		# -------------------------------------------------------------------------
 		
 		# Constants
@@ -86,8 +86,8 @@ eliminate:
 		subiu	$s0, $s1, 4		# s0 = (N - 1) * 4
 		addiu	$s2, $s1, 4		# s2 = (N + 1) * 4
 		
-		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
-		lwc1	$f11, one		# f11 = 1
+		#sub.s	$f5, $f5, $f5		# f5 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
+		lwc1	$f6, one		# f6 = 1
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		
@@ -115,31 +115,31 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		addiu	$t1, $t1, 4
 		## Right Loop End
 		
-		swc1	$f11, 0($t0)		# pivot = 1
+		swc1	$f6, 0($t0)		# pivot = 1
 		
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
 		addiu	$s4, $s7, 0		# s4 = last element of pivot row: Pointer to the last element of current row_loop row.
 		addu	$t2, $t0, $s1		# t2 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
-column_loop:	lwc1	$f6, 0($t2)		# f6: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
+column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
 		### Row Loop Setup
 		li	$t3, 4			# t3: Pointer offset from column element to current row element
 		addu	$s4, $s4, $s1		# Point s4 to last element of next row
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row	
-		lwc1	$f5, 0($t5)		# f5: current pivot row element
-		lwc1	$f4, 0($t4)		# f4 = A[i][j]
-		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
-		sub.s	$f4, $f4, $f5		# f4 -= f5
-		swc1	$f4, 0($t4)		# Store
+		lwc1	$f4, 0($t5)		# f4: current pivot row element
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mul.s	$f4, $f4, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
 		
 		bne	$t4, $s4, row_loop
 		addiu	$t3, $t3, 4		# Increase row element offset to point to next row element
 		### Row Loop End
 		
-		swc1	$f10, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
+		swc1	$f5, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
 		bne	$t2, $s5, column_loop
 		addu	$t2, $t2, $s1		# Point t2 to next col element
 		## Column Loop End
@@ -150,7 +150,7 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		addu	$t0, $t0, $s2		# t0 += (N + 1) * 4. Point t0 to next pivot element.
 		# Pivot Loop End
 		
-		swc1	$f11, 0($t0)		# Pivot loop is only run N-1 times. This sets pivot element N to 1.
+		swc1	$f6, 0($t0)		# Pivot loop is only run N-1 times. This sets pivot element N to 1.
 		
 		
 		###### ELIMINATE IMPLEMENTATION END
