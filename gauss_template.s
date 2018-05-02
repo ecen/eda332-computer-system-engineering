@@ -28,9 +28,9 @@ eliminate:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 214K Cycles, Performance: 2012
-		# I Cache: Direct, 4 blocks, block size 4
-		# D-Cache: 2-Way, 8 blocks, block size 4
+		# 148K Cycles, Performance: 1150
+		# I Cache: Direct, 8 blocks, block size 4
+		# D-Cache: 2-Way, 16 blocks, block size 4
 		# Memory 30/6, write buffer 8
 		
 		# REGISTER USAGE TABLE
