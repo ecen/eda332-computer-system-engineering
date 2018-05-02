@@ -123,13 +123,36 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		addu	$t2, $t0, $s1		# t2 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
+		lwc1	$f30,   0($s4)		#Load all pivot row elements to registers, starting from the right
+		lwc1	$f29,  -4($s4)
+		lwc1	$f28,  -8($s4)
+		lwc1	$f27, -12($s4)
+		lwc1	$f26, -16($s4)
+		lwc1	$f25, -20($s4)
+		lwc1	$f24, -24($s4)
+		lwc1	$f24, -28($s4)
+		lwc1	$f23, -32($s4)
+		lwc1	$f22, -36($s4)		# 10
+		lwc1	$f21, -40($s4)
+		lwc1	$f20, -44($s4)
+		lwc1	$f19, -48($s4)
+		lwc1	$f18, -52($s4)
+		lwc1	$f17, -56($s4)
+		lwc1	$f16, -60($s4)
+		lwc1	$f15, -64($s4)
+		lwc1	$f14, -68($s4)
+		lwc1	$f13, -72($s4)
+		lwc1	$f12, -76($s4)		# 20
+		lwc1	$f11, -80($s4)
+		lwc1	$f10, -84($s4)
+		lwc1	$f9,  -88($s4)		# 23
 		### Row Loop Setup
 		li	$t3, 4			# t3: Pointer offset from column element to current row element
 		addu	$s4, $s4, $s1		# Point s4 to last element of next row
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
-		addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row	
-		lwc1	$f4, 0($t5)		# f4: current pivot row element
+		addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row
+		lwc1	$f4, 0($t5)		# f4: current pivot row element 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
 		mul.s	$f4, $f4, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
