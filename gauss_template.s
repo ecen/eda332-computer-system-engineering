@@ -130,22 +130,22 @@ column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is g
 		lwc1	$f26, -16($s4)
 		lwc1	$f25, -20($s4)
 		lwc1	$f24, -24($s4)
-		lwc1	$f24, -28($s4)
-		lwc1	$f23, -32($s4)
-		lwc1	$f22, -36($s4)		# 10
-		lwc1	$f21, -40($s4)
-		lwc1	$f20, -44($s4)
-		lwc1	$f19, -48($s4)
-		lwc1	$f18, -52($s4)
-		lwc1	$f17, -56($s4)
-		lwc1	$f16, -60($s4)
-		lwc1	$f15, -64($s4)
-		lwc1	$f14, -68($s4)
-		lwc1	$f13, -72($s4)
-		lwc1	$f12, -76($s4)		# 20
-		lwc1	$f11, -80($s4)
-		lwc1	$f10, -84($s4)
-		lwc1	$f9,  -88($s4)		# 23
+		lwc1	$f23, -28($s4)
+		lwc1	$f22, -32($s4)
+		lwc1	$f21, -36($s4)		# 10
+		lwc1	$f20, -40($s4)
+		lwc1	$f19, -44($s4)
+		lwc1	$f18, -48($s4)
+		lwc1	$f17, -52($s4)
+		lwc1	$f16, -56($s4)
+		lwc1	$f15, -60($s4)
+		lwc1	$f14, -64($s4)
+		lwc1	$f13, -68($s4)
+		lwc1	$f12, -72($s4)
+		lwc1	$f11, -76($s4)		# 20
+		lwc1	$f10, -80($s4)
+		lwc1	$f9,  -84($s4)
+		lwc1	$f8,  -88($s4)		# 23
 		### Row Loop Setup
 		li	$t3, 4			# t3: Pointer offset from column element to current row element
 		addu	$s4, $s4, $s1		# Point s4 to last element of next row
@@ -157,7 +157,6 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		mul.s	$f4, $f4, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
-		
 		bne	$t4, $s4, row_loop
 		addiu	$t3, $t3, 4		# Increase row element offset to point to next row element
 		### Row Loop End
