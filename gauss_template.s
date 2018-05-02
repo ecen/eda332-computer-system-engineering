@@ -53,7 +53,7 @@ eliminate:
 		# t3: Pointer offset from col elem to cur row elem.	Column Loop
 		# t4: Pointer to current element on current row.	Row Loop
 		# t5: Pointer to current element on pivot row.		Row Loop
-		# t6: 
+		# t6: Last element of pivot row				Column Loop
 		# t7: 
 		# t8: 
 		# t9: Reserved for use as temp register.		TEMP
@@ -119,46 +119,250 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
-		addiu	$s4, $s7, 0		# s4 = last element of pivot row: Pointer to the last element of current row_loop row.
+		addiu	$s4, $t0, 4		# s4 = first element of pivot row: Pointer to the first element of current row_loop row.
+		addiu	$t6, $s7, 0		# t6: Last element of pivot row
 		addu	$t2, $t0, $s1		# t2 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
-		lwc1	$f30,   0($s4)		#Load all pivot row elements to registers, starting from the right
-		lwc1	$f29,  -4($s4)
-		lwc1	$f28,  -8($s4)
-		lwc1	$f27, -12($s4)
-		lwc1	$f26, -16($s4)
-		lwc1	$f25, -20($s4)
-		lwc1	$f24, -24($s4)
-		lwc1	$f23, -28($s4)
-		lwc1	$f22, -32($s4)
-		lwc1	$f21, -36($s4)		# 10
-		lwc1	$f20, -40($s4)
-		lwc1	$f19, -44($s4)
-		lwc1	$f18, -48($s4)
-		lwc1	$f17, -52($s4)
-		lwc1	$f16, -56($s4)
-		lwc1	$f15, -60($s4)
-		lwc1	$f14, -64($s4)
-		lwc1	$f13, -68($s4)
-		lwc1	$f12, -72($s4)
-		lwc1	$f11, -76($s4)		# 20
-		lwc1	$f10, -80($s4)
-		lwc1	$f9,  -84($s4)
-		lwc1	$f8,  -88($s4)		# 23
+		lwc1	$f30,   0($t6)		#Load all pivot row elements to registers, starting from the right
+		lwc1	$f29,  -4($t6)
+		lwc1	$f28,  -8($t6)
+		lwc1	$f27, -12($t6)
+		lwc1	$f26, -16($t6)
+		lwc1	$f25, -20($t6)
+		lwc1	$f24, -24($t6)
+		lwc1	$f23, -28($t6)
+		lwc1	$f22, -32($t6)
+		lwc1	$f21, -36($t6)		# 10
+		lwc1	$f20, -40($t6)
+		lwc1	$f19, -44($t6)
+		lwc1	$f18, -48($t6)
+		lwc1	$f17, -52($t6)
+		lwc1	$f16, -56($t6)
+		lwc1	$f15, -60($t6)
+		lwc1	$f14, -64($t6)
+		lwc1	$f13, -68($t6)
+		lwc1	$f12, -72($t6)
+		lwc1	$f11, -76($t6)		# 20
+		lwc1	$f10, -80($t6)
+		lwc1	$f9,  -84($t6)
+		lwc1	$f8,  -88($t6)		# 23
 		### Row Loop Setup
-		li	$t3, 4			# t3: Pointer offset from column element to current row element
-		addu	$s4, $s4, $s1		# Point s4 to last element of next row
+		li	$t3, 92			# t3: Pointer offset from column element to current row element (starting from the right)
+		addu	$s4, $s4, $s1		# Point s4 to first element of next row
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
-		addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row
-		lwc1	$f4, 0($t5)		# f4: current pivot row element 
+		#addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row
+		#lwc1	$f4, 0($t5)		# f4: current pivot row element
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mul.s	$f4, $f4, $f2		# f4 = A[i][k] * A[k][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f30, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
-		bne	$t4, $s4, row_loop
-		addiu	$t3, $t3, 4		# Increase row element offset to point to next row element
+		#bne	$t4, $s4, row_loop
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f29, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f28, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f27, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f26, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f25, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f24, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f23, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f22, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f21, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f20, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f19, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f18, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f17, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f16, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f15, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f14, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f13, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f12, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f11, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f10, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f9, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		lwc1	$f3, 0($t4)		# f3 = A[i][j]
+		mfc1	$t9, $f3		
+		beqz	$t9, row_loop_end
+		mul.s	$f4, $f8, $f2		# f4 = A[i][k] * A[k][j]
+		sub.s	$f3, $f3, $f4		# f3 -= f4
+		swc1	$f3, 0($t4)		# Store
+		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+row_loop_end:
+		
+
 		### Row Loop End
 		
 		swc1	$f5, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
