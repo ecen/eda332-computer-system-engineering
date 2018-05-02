@@ -75,10 +75,8 @@ eliminate:
 		# f5 = 0						CONST
 		# f6 = 1						CONST
 		# f7: 
-		# f8: 
-		# f9: 
-		# f10: 
-		# f11: 
+		# f8 - f30: Pivot row elements
+		# f31:
 		# -------------------------------------------------------------------------
 		
 		# Constants
@@ -120,10 +118,8 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
 		addiu	$s4, $t0, 4		# s4 = first element of pivot row: Pointer to the first element of current row_loop row.
-		addiu	$t6, $s7, 0		# t6: Last element of pivot row
 		addu	$t2, $t0, $s1		# t2 = t0 + N * 4: Pointer to current col element
-		## Column Loop: Iterate over each element C in pivot column below pivot element
-column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
+		addiu	$t6, $s7, 0		# t6: Last element of pivot row
 		lwc1	$f30,   0($t6)		#Load all pivot row elements to registers, starting from the right
 		lwc1	$f29,  -4($t6)
 		lwc1	$f28,  -8($t6)
@@ -147,6 +143,8 @@ column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is g
 		lwc1	$f10, -80($t6)
 		lwc1	$f9,  -84($t6)
 		lwc1	$f8,  -88($t6)		# 23
+		## Column Loop: Iterate over each element C in pivot column below pivot element
+column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
 		### Row Loop Setup
 		li	$t3, 92			# t3: Pointer offset from column element to current row element (starting from the right)
 		addu	$s4, $s4, $s1		# Point s4 to first element of next row
@@ -364,7 +362,6 @@ row_loop_end:
 		
 
 		### Row Loop End
-		
 		swc1	$f5, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
 		bne	$t2, $s5, column_loop
 		addu	$t2, $t2, $s1		# Point t2 to next col element
