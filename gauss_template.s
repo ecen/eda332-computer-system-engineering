@@ -40,31 +40,96 @@ exit:
 
 #
 
-# Args:		$a0  - base address of matrix (A)
-
-#			$a1  - number of elements per row (N)
 
 
 
 eliminate:
 
 		# If necessary, create stack frame, and save return address from ra
-
+		
 		addiu	$sp, $sp, -4		# allocate stack frame
 
 		sw		$ra, 0($sp)			# done saving registers
-
 		
-
-		##
-
-		## Implement eliminate here
-
-		## 
-
-
-
-		lw		$ra, 0($sp)			# done restoring registers
+		####Eliminate implementation
+		## Args
+		## Imortant M*B must be equal to N
+		# $a0  - base address of matrix (A)
+		# $a1  -Number of elements per row/column (N)
+		# $a2 - Number of blocks per row/column (B)
+		# $a3 - Number of element per block row/column (M)
+		#----------------------------------------
+		#s0 - N*4
+		#s1 - N*N*4
+		#s2 - last element pointer
+		#s3 - ((N+1)*(M-1))*4	Length from top corner of block to bottom corner of block.
+		#s4 - last block pointer
+		#s5 - M*4
+		#s6 - (N-M)*4	Length from first block to last in row.
+		#s7 - Last row first block, pointer
+		#-----------------------------------------
+		#t0 - current block-row pointer
+		#t1 - last block in row
+		#t2 - tmp register
+		#t3 - current block-col pointer
+		#t4 - last block in row
+		
+		#t9 - M*N*4
+		
+		
+		#Constants:
+		sll $s0, $a1, 2		#N*4
+		
+		mulu $s1, $s0, $a1	#N*N*4
+		
+		mulu $t2, $s0, $a3	#M*N*4
+		
+		addu $s2, $a0, $s1
+		subiu $s2, $s2, 4	#Last element pointer
+		
+		addiu $s3, $a1, 1
+		subiu $t2, $a3, 1
+		mul $s3, $s3, $t2
+		sll $s3, $s3, 2		#((N+1)*(M-1))*4
+		
+		subiu $s4, $s2, $s3	#Last block pointer = Last element pointer - ((N+1)*(M-1))*4
+		
+		sll $s5, $a3, 2		#M*4
+		
+		subu $s6, $a1, $a3	#M-N
+		sll $s6, $s6, 2		#(N-M)*4
+		
+		subu $s7, $s4, $s6	#Last block first column
+		
+		#Program
+		
+		#Set up the row_loop
+		addiu $t0, $a0, 0	#Current block-row pointer
+		
+row_loop:	#Set up the col_loop
+		addiu $t3, $t0, 0
+		addiu $t4, $t0, $s6
+		
+		
+col_loop:	#row_loop loops over $t0 to $s7 (Last row first block, pointer)
+		#col_loop loops over $t3 to $t4 (Last block in row, pointer)
+		
+		
+		
+		#End col loop
+		bne $t3, $t4, col_loop
+		addu $t3, $t3, $s5
+		
+		#End row loop
+		bne $t0, $s7, row_loop
+		addu $t0, $t0, $t7
+		
+		
+		
+		
+		
+		
+		lw	$ra, 0($sp)			# done restoring registers
 
 		addiu	$sp, $sp, 4			# remove stack frame
 
