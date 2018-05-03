@@ -4,11 +4,11 @@ start:
 		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
 		li	$a1, 24    		# a1 = N (number of elements per row)
 						# <debug>
-		jal 	print_matrix	    	# print matrix before elimination
+		#jal 	print_matrix	    	# print matrix before elimination
 		nop				# </debug>
 		jal 	eliminate		# triangularize matrix!
 		nop				# <debug>
-		jal 	print_matrix		# print matrix after elimination
+		#jal 	print_matrix		# print matrix after elimination
 		nop				# </debug>
 		jal 	exit
 
@@ -54,7 +54,7 @@ eliminate:
 		# t4: Pointer to current element on current row.	Row Loop
 		# t5: Pointer to leftmost element on current row.	Row Loop
 		# t6: Last element of pivot row				Column Loop
-		# t7: 
+		# t7: Maximum offset					Pivot Loop
 		# t8: 
 		# t9: Reserved for use as temp register.		TEMP
 		# -------------------------------------------------------------------------
@@ -86,6 +86,7 @@ eliminate:
 		
 		#sub.s	$f5, $f5, $f5		# f5 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
 		lwc1	$f6, one		# f6 = 1
+		li	$t7, 92
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		
@@ -146,16 +147,14 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	lwc1	$f2, 0($t2)		# f2: current col element
 		### Row Loop Setup
-		li	$t3, 92			# t3: Pointer offset from column element to current row element (starting from the right)
+		addu	$t3, $t7, $zero		# t3: Pointer offset from column element to current row element (starting from the right)
 		addu	$s4, $s4, $s1		# Point s4 to first element of next row
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
-		#addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row
-		#lwc1	$f4, 0($t5)		# f4: current pivot row element
+		lwc1	$f3, 0($t4)		# f4: current pivot row element
 		mul.s	$f4, $f30, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
-		#bne	$t4, $s4, row_loop
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
 		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 
@@ -335,7 +334,7 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
 		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 row_loop_end:
-		jal	print_matrix
+		#jal	print_matrix
 
 		### Row Loop End
 		swc1	$f5, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
@@ -343,6 +342,7 @@ row_loop_end:
 		addu	$t2, $t2, $s1		# Point t2 to next col element
 		## Column Loop End
 		
+		addiu	$t7, $t7, -4
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
 		addu	$s6, $s6, $s1		# s6 += N * 4. Point s6 to first element on next row.
 		bne	$t0, $s3, pivot_loop	# Loop if current pivot was not the last element
