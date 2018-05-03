@@ -52,9 +52,9 @@ eliminate:
 		# t2: Pointer to current col element.			Pivot Loop
 		# t3: Pointer offset from col elem to cur row elem.	Column Loop
 		# t4: Pointer to current element on current row.	Row Loop
-		# t5: Pointer to current element on pivot row.		Row Loop
+		# t5: Pointer to leftmost element on current row.	Row Loop
 		# t6: Last element of pivot row				Column Loop
-		# t7: 
+		# t7: Maximum offset					Pivot Loop
 		# t8: 
 		# t9: Reserved for use as temp register.		TEMP
 		# -------------------------------------------------------------------------
@@ -86,6 +86,7 @@ eliminate:
 		
 		#sub.s	$f5, $f5, $f5		# f5 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
 		lwc1	$f6, one		# f6 = 1
+		li	$t7, 92
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		
@@ -144,222 +145,196 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		lwc1	$f9,  -84($t6)
 		lwc1	$f8,  -88($t6)		# 23
 		## Column Loop: Iterate over each element C in pivot column below pivot element
-column_loop:	lwc1	$f2, 0($t2)		# f2: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
+column_loop:	lwc1	$f2, 0($t2)		# f2: current col element
 		### Row Loop Setup
-		li	$t3, 92			# t3: Pointer offset from column element to current row element (starting from the right)
+		addu	$t3, $t7, $zero		# t3: Pointer offset from column element to current row element (starting from the right)
 		addu	$s4, $s4, $s1		# Point s4 to first element of next row
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
-		#addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row
-		#lwc1	$f4, 0($t5)		# f4: current pivot row element
-		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
+		lwc1	$f3, 0($t4)		# f4: current pivot row element
 		mul.s	$f4, $f30, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
-		#bne	$t4, $s4, row_loop
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
-		
-		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
+
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f29, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f28, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f27, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f26, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f25, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f24, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f23, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f22, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f21, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f20, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f19, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f18, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f17, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f16, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f15, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f14, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f13, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f12, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f11, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f10, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f9, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 		
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
 		lwc1	$f3, 0($t4)		# f3 = A[i][j]
-		mfc1	$t9, $f3		
-		beqz	$t9, row_loop_end
 		mul.s	$f4, $f8, $f2		# f4 = A[i][k] * A[k][j]
 		sub.s	$f3, $f3, $f4		# f3 -= f4
 		swc1	$f3, 0($t4)		# Store
 		addiu	$t3, $t3, -4		# Decrease row element offset to point to next row element
+		beqz	$t3, row_loop_end	# End row if offset (t3) is 0. That means next current elem is column elem.
 row_loop_end:
-		
+		#jal	print_matrix
 
 		### Row Loop End
 		swc1	$f5, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
@@ -367,6 +342,7 @@ row_loop_end:
 		addu	$t2, $t2, $s1		# Point t2 to next col element
 		## Column Loop End
 		
+		addiu	$t7, $t7, -4
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
 		addu	$s6, $s6, $s1		# s6 += N * 4. Point s6 to first element on next row.
 		bne	$t0, $s3, pivot_loop	# Loop if current pivot was not the last element
