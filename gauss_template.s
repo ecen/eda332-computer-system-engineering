@@ -55,12 +55,12 @@ eliminate:
 		## Args
 		## Imortant M*B must be equal to N
 		# $a0  - base address of matrix (A)
-		# $a1  -Number of elements per row/column (N)
+		# $a1 - Number of elements per row/column (N)
 		# $a2 - Number of blocks per row/column (B)
 		# $a3 - Number of element per block row/column (M)
 		#----------------------------------------
-		#s0 - N*4
-		#s1 - N*N*4
+		#s0 - N*4	/I
+		#s1 - N*N*4	/J
 		#s2 - last element pointer
 		#s3 - ((N+1)*(M-1))*4	Length from top corner of block to bottom corner of block.
 		#s4 - last block pointer
@@ -73,9 +73,18 @@ eliminate:
 		#t2 - tmp register
 		#t3 - current block-col pointer
 		#t4 - last block in row
-		
+		#t5 -  Min((I + 1)* M - 1, (J + 1) * M - 1 = (Min(I, J)+1) * M - 1
+		#t6 - tmp
+		#t7 - tmp
+		#t8 - (I+1)*M-1 	/tmp
 		#t9 - M*N*4
-		
+		#-----------------------------------------
+		#v0 - tmp
+		#v1 - tmp
+		#-----------------------------------------
+		#k0 - k
+		#k1 - j
+		#sp - i
 		
 		#Constants:
 		sll $s0, $a1, 2		#N*4
@@ -105,22 +114,66 @@ eliminate:
 		
 		#Set up the row_loop
 		addiu $t0, $a0, 0	#Current block-row pointer
+		addu $s0, $zero, $zero	#s0 = 0 /I /Row probably necessary due to prev usage of s0
+		
 		
 row_loop:	#Set up the col_loop
-		addiu $t3, $t0, 0
-		addiu $t4, $t0, $s6
+		addiu $t3, $t0, 0	#t3 = t0
+		addu $t4, $t0, $s6	#t4 = pointer to the last  block in row 
+		addu $s1, $zero, $zero	#s1 = 0 probably necessary due to prev usage of s1
+		
+col_loop:	#row_loop loops over t0->,s0 (=I) to $s7-> (Last row first block, pointer)
+		#col_loop loops over $t3->,s1 (=J) to $t4-> (Last block in row, pointer)
 		
 		
-col_loop:	#row_loop loops over $t0 to $s7 (Last row first block, pointer)
-		#col_loop loops over $t3 to $t4 (Last block in row, pointer)
+		#s0 = I
+		#s1 = J
+		
+		#Set up pivot loop
+		slt $t6, $s1, $s0	# t6 = J<I
+		sle $t7, $s0, $s1	# t7 = I<=J
+		addiu $t8, $s0, 1	# t8 = (I+1)
+		mulu $t8, $t8, $a3	# t8 = (I+1) * M
+		subiu $t8, $t8, 1	# t8 = (I+1) * M - 1
+		mulu $t8, $t6, $t8	# v0 = t6*t8 = (J>I)*((I+1)*M - 1)
+		
+		addiu $t5, $s1, 1	#t5 = (J+1)
+		mulu $t5, $t5, $a3	#t5 = (J+1)* M
+		subiu $t5, $t5, 1	#t5 = (J+1)* M - 1
+		mulu $t5, $t7, $t3	#v1 = t7*t3 = (I<=J)*((J+1)* M - 1)
+		
+		addu $t5, $v1, $v0	#t5 = t6*t0 + t7*t3 = ((J>I) * (I+1)*M-1) + ((I<=J) * (J+1)*M-1) = min((I+1)*M-1, (J+1)*M-1)
+		#t5 = min((I+1)*M-1, (J+1)*M-1)
+		#t8 = (I+1)*M-1
+		
+		addu $k0, $zero, $zero	#k0=0 (Might not be necessary)
+
+pivot_loop:	#loop over k0 (=k) to t5
+		
+		#tmpreg: t6,t7,xt8x,v0,v1
+		#if(k>=I*M && k<=(I+1)*M-1)
+		mulu $t6, $a3, $s0
+		sge $t6, $k0, $t6
+		sle $t7, $k0, $t8
+		bne $t6, $t7 done_if	# If t6 = t7 then they are both 1, since they can't be zero at the same time.
+		
+		#Begin if
+		#tmpreg: t6,t7,t8,v0,v1
 		
 		
+done_if:	
+		
+		#End pivot loop
+		bne $k0, $t5, pivot_loop
+		addiu $k0, $k0, 1
 		
 		#End col loop
+		addiu $s0, $s1, 1
 		bne $t3, $t4, col_loop
 		addu $t3, $t3, $s5
 		
 		#End row loop
+		addiu $s0, $s0, 1
 		bne $t0, $s7, row_loop
 		addu $t0, $t0, $t7
 		
@@ -142,71 +195,38 @@ col_loop:	#row_loop loops over $t0 to $s7 (Last row first block, pointer)
 
 
 ################################################################################
-
-# getelem - Get address and content of matrix element A[a][b].
-
-#
-
-# Argument registers $a0..$a3 are preserved across calls
-
-#
-
-# Args:		$a0  - base address of matrix (A)
-
-#			$a1  - number of elements per row (N)
-
-#			$a2  - row number (a)
-
-#			$a3  - column number (b)
-
-#						
-
-# Returns:	$v0  - Address to A[a][b]
-
-#			$f0  - Contents of A[a][b] (single precision)
-
-getelem:
-
-		addiu	$sp, $sp, -12		# allocate stack frame
-
-		sw		$s2, 8($sp)
-
-		sw		$s1, 4($sp)
-
-		sw		$s0, 0($sp)			# done saving registers
-
+#maxkj - Max(k+1, J*M) = Max($k0+1,$s0*$a3) -> $v0 /Uses t6, t7, $t8, $v0
+maxkj:		
+		
+		addiu $t6, $k0, 1	#t6 = k0+1 = k+1
+		mulu $t7, $s0, $a3	#v0 = s0*a3 = J*M
+		
+		slt $t8, $t7, $t6	#t8 = s0<t6 = s0*a3 < k0+1 = J*M < k+1
+		sle $v0, $t6, $s0	#v0 = t6<=s0 = k0+1 <= s0*a3 = k+1 <= J*M
+		
+		mulu $t6, $t6, $t8	#t6 = (k0+1)*(s0*a3 < k0+1) = (k+1) * (J*M < k+1)
+		mulu $t7, $t7, $v0	#t7 = (s0*a3)*(k0+1 <= s0*a3) = (J*M) * (k+1 <= J*M)
+		
+		addu $v0, $t6, $t7	#v0 = Max($k0+1,$s0*$a3) = Max(k+1, I*M)
 		
 
-		sll		$s2, $a1, 2			# s2 = 4*N (number of bytes per row)
 
-		multu	$a2, $s2			# result will be 32-bit unless the matrix is huge
 
-		mflo	$s1					# s1 = a*s2
 
-		addu	$s1, $s1, $a0		# Now s1 contains address to row a
-
-		sll		$s0, $a3, 2			# s0 = 4*b (byte offset of column b)
-
-		addu	$v0, $s1, $s0		# Now we have address to A[a][b] in v0...
-
-		l.s		$f0, 0($v0)		    # ... and contents of A[a][b] in f0.
-
+#maxki - Max(k+1, I*M) = Max($k0+1,$s0*$a3) -> $v0 /Uses t6, t7, $t8, $v0
+#Almost the same as maxkj, could just use one...
+maxki:		
 		
-
-		lw		$s2, 8($sp)
-
-		lw		$s1, 4($sp)
-
-		lw		$s0, 0($sp)			# done restoring registers
-
-		addiu	$sp, $sp, 12		# remove stack frame
-
+		addiu $t6, $k0, 1	#t6 = k0+1 = k+1
+		mulu $t7, $s1, $a3	#v0 = s0*a3 = J*M
 		
-
-		jr		$ra					# return from subroutine
-
-		nop							# this is the delay slot associated with all types of jumps
-
+		slt $t8, $t7, $t6	#t8 = t7<t6 = s0*a3 < k0+1 = J*M < k+1
+		sle $v0, $t6, $t7	#v0 = t6<=t7 = k0+1 <= s0*a3 = k+1 <= J*M
+		
+		mulu $t6, $t6, $t8	#t6 = (k0+1)*(s1*a3 < k0+1) = (k+1) * (J*M < k+1)
+		mulu $t7, $t7, $v0	#t7 = (s1*a3)*(k0+1 <= s1*a3) = (J*M) * (k+1 <= J*M)
+		
+		addu $v0, $t6, $t7	#v0 = Max($k0+1,$s1*$a3) = Max(k+1, I*M)
 
 
 ################################################################################
