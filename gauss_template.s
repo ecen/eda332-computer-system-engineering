@@ -59,8 +59,8 @@ eliminate:
 		# t9: Reserved for use as temp register.		TEMP
 		# -------------------------------------------------------------------------
 		# s0 = (N - 1) * 4					CONST
-		# s1 = N * 4						CONST
-		# s2 = (N + 1) * 4					CONST
+		# 
+		# 
 		# s3: Pointer to second last pivot element.		Pivot Loop
 		# s4: Pointer to last elem of current row.		Pivot Loop
 		# s5: Pointer to last column elem in curr pivot col.	Pivot Loop
@@ -85,9 +85,8 @@ eliminate:
 		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
 		lwc1	$f11, one		# f11 = 1
 		
-		sll	$s1, $a1, 2		# s1 = N * 4 = 24 * 4 = 96
-		subiu	$s0, $s1, 4		# s0 = (N - 1) * 4 = 92
-		addiu	$s2, $s1, 4		# s2 = (N + 1) * 4 = 100
+		li	$s0, 92		# s0 = (N - 1) * 4 = 92
+		# (N + 1) * 4 = 100
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		
