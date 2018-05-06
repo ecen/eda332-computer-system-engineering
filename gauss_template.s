@@ -5,24 +5,10 @@ start:
 		li	$a1, 24    		# a1 = N (number of elements per row)
 						# <debug>
 		#jal 	print_matrix	    	# print matrix before elimination
-		nop				# </debug>
-		jal 	eliminate		# triangularize matrix!
-		nop				# <debug>
-		#jal 	print_matrix		# print matrix after elimination
-		nop				# </debug>
-		jal 	exit
-
-exit:
-		li   	$v0, 10          	# specify exit system call
-   	   	syscall				# exit program
-
-################################################################################
-# eliminate - Triangularize matrix.
-#
-# Args:		$a0  - base address of matrix (A)
-#		$a1  - number of elements per row (N)
-
-eliminate:
+		#nop				# </debug>
+		
+		
+		
 		
 		
 		###### ELIMINATE IMPLEMENTATION
@@ -83,31 +69,22 @@ eliminate:
 		
 		# Constants
 		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
-		lwc1	$f11, one		# f11 = 1
+		lwc1	$f11, one		# f11 = 1 (float)
 		
-		li	$s0, 92			# s0 = (N - 1) * 4 = 92
-		# (N + 1) * 4 = 100
+		addiu	$s3, $a0, 2100		# s3: Pointer to third last pivot element.
 		
-		mul	$t1, $a1, $a1		# total nr of elements in matrix
-		
-		#sll	$s3, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
-		#addu	$s3, $a0, $s3		# Pointer to element N * N (Outside matrix)
-		#subiu	$s3, $s3, 96		# Pointer to element N * N - N
-		#subiu	$s3, $s3, 8		# s3: Pointer to element N * N - N - 2 (Third last pivot element)
-		li	$s3, 2100		# [ (N ^ 2) - ((N + 1) * k + 1) ] * 4. k = 2. (k = distance from last, ex: 0 is last pivot, 1 is second-to-last.)
-		addu	$s3, $s3, $a0		# s3: Pointer to third last pivot element.
 		
 		# Pivot Loop Setup
-		addiu	$t0, $a0, 0		# t0: pointer to current pivot
-		#addiu	$s6, $a0, 0		# s6: pointer to first element in current row
+		# addiu	$t0, $a0, 0		# t0: pointer to current pivot
+
 		addiu	$s7, $a0, 92		# s7: Pointer to last element of row.
-		li	$s5, 2112		# N * (N - 2) * 4
-		addu	$s5, $t0, $s5		# s5 = t0 + N * (N - 2) * 4: Pointer to the last column element in current pivot column.
+		#li	$s5, 2112
+		addiu	$s5, $a0, 2112		# s5: Pointer to the second last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	
 		## Right Loop Setup
-		lwc1	$f0, 0($t0)		# f0 = current pivot element
-		addiu	$t1, $t0, 4		# t1: pointer to current element on row
+		lwc1	$f0, 0($a0)		# f0 = current pivot element
+		addiu	$t1, $a0, 4		# t1: pointer to current element on row
 		div.s	$f2, $f11, $f0
 		## Right Loop: Loops over all elements on pivot row to the right of pivot element
 right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
@@ -117,15 +94,15 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		bne	$s7, $t1, right_loop
 		addiu	$t1, $t1, 4
 		## Right Loop End
-		swc1	$f11, 0($t0)		# pivot = 1
+		swc1	$f11, 0($a0)		# pivot = 1
 				
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
-		addiu	$t2, $t0, 96		# t2 = t0 + N * 4: Pointer to current col element
+		addiu	$t2, $a0, 96		# t2 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop Setup
-		addiu	$t5, $t0, 4		# t5: Pointer to current element on pivot row	
+		addiu	$t5, $a0, 4		# t5: Pointer to current element on pivot row	
 		addiu	$t4, $t2, 4		# t4: Pointer to current element on current row.
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
@@ -146,37 +123,52 @@ row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
 		addiu	$s7, $s7, 96		# s7 += N * 4. Point s7 to last element on next row.
-		bne	$t0, $s3, pivot_loop	# Loop if current pivot was not the last element
-		addiu	$t0, $t0, 100		# t0 += (N + 1) * 4. Point t0 to next pivot element.
+		bne	$a0, $s3, pivot_loop	# Loop if current pivot was not the last element
+		addiu	$a0, $a0, 100		# t0 += (N + 1) * 4. Point t0 to next pivot element.
 		# Pivot Loop End
 		
 		# Run row loop on the last row
-		addiu	$t1, $t0, 4		# t1: pointer to current element on row
-		lwc1	$f1, 0($t1)		# f1: current element on row
-		lwc1	$f0, 0($t0)		# f0: current pivot element
+		
+		lwc1	$f1, 4($a0)		# f1: current element on row
+		lwc1	$f0, 0($a0)		# f0: current pivot element
 		div.s	$f1, $f1, $f0		# f1 = f1 / f0
-		swc1	$f1, 0($t1)		# Store
-		swc1	$f11, 0($t0)		# Set pivot element to 1.
+		swc1	$f1, 4($a0)		# Store
+		swc1	$f11, 0($a0)		# Set pivot element to 1.
 		# Row loop end
 		
 		# Zero loop setup
-		addiu	$t0, $t0, 96		# t0: Last elem
+		
+		addiu	$t2, $a0, 92
 		# Zero loop: Set all elements except the rightmost on the last row to 0.
-zero_loop:	addiu	$t1, $t1, 4		# Point current element pointer to 1.
-		bne	$t0, $t1, zero_loop	# If current elem is not the last one, then branch.
-		swc1	$f10, 0($t1)		# Store current elem
+zero_loop:	addiu	$a0, $a0, 4		# Point current element pointer to 1.
+		bne	$t2, $a0, zero_loop	# If current elem is not the last one, then branch.
+		swc1	$f10, 4($a0)		# Store current elem
 		# Zero loop end
 		
-		swc1	$f11, 4($t1)		# Set the last elem on last row to 1.
+		swc1	$f11, 8($a0)		# Set the last elem on last row to 1.
 		
 		
 		
 		###### ELIMINATE IMPLEMENTATION END
-
 		
+		
+		
+		
+		#la	$a0, matrix_24x24	
+		#jal 	print_matrix		# print matrix after elimination
+		#nop				# </debug>
+		
+		#Exit
+		li   	$v0, 10          	# specify exit system call
+   	   	syscall	
+		
+		#jal 	exit
 
-		jr	$ra			# return from subroutine
-		nop				# this is the delay slot associated with all types of jumps
+#exit:
+#		li   	$v0, 10          	# specify exit system call
+#   	   	syscall				# exit program
+
+################################################################################
 
 ################################################################################
 # print_matrix
