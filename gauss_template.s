@@ -8,7 +8,7 @@ start:
 		nop				# </debug>
 		jal 	eliminate		# triangularize matrix!
 		nop				# <debug>
-		jal 	print_matrix		# print matrix after elimination
+		#jal 	print_matrix		# print matrix after elimination
 		nop				# </debug>
 		jal 	exit
 
@@ -28,7 +28,7 @@ eliminate:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 148K Cycles, Performance: 1150
+		# 140K Cycles, Performance: 1082
 		# I Cache: Direct, 8 blocks, block size 4
 		# D-Cache: 2-Way, 16 blocks, block size 4
 		# Memory 30/6, write buffer 8
@@ -85,21 +85,23 @@ eliminate:
 		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
 		lwc1	$f11, one		# f11 = 1
 		
-		li	$s0, 92		# s0 = (N - 1) * 4 = 92
+		li	$s0, 92			# s0 = (N - 1) * 4 = 92
 		# (N + 1) * 4 = 100
 		
 		mul	$t1, $a1, $a1		# total nr of elements in matrix
 		
-		sll	$s3, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
-		addu	$s3, $a0, $s3		# Pointer to element N * N (Outside matrix)
-		subiu	$s3, $s3, 96		# Pointer to element N * N - N
-		subiu	$s3, $s3, 8		# s3: Pointer to element N * N - N - 2 (Second last pivot element)
+		#sll	$s3, $t1, 2		# Convert t1 to pointer offset by multiplying by 4
+		#addu	$s3, $a0, $s3		# Pointer to element N * N (Outside matrix)
+		#subiu	$s3, $s3, 96		# Pointer to element N * N - N
+		#subiu	$s3, $s3, 8		# s3: Pointer to element N * N - N - 2 (Third last pivot element)
+		li	$s3, 2100		# [ (N ^ 2) - ((N + 1) * k + 1) ] * 4. k = 2. (k = distance from last, ex: 0 is last pivot, 1 is second-to-last.)
+		addu	$s3, $s3, $a0		# s3: Pointer to third last pivot element.
 		
 		# Pivot Loop Setup
 		addiu	$t0, $a0, 0		# t0: pointer to current pivot
 		addiu	$s6, $a0, 0		# s6: pointer to first element in current row
-		mulu	$s5, $a1, $s0		# N * (N - 1) * 4
-		addu	$s5, $t0, $s5		# s5 = t0 + N * (N - 1) * 4: Pointer to the last column element in current pivot column.
+		li	$s5, 2112		# N * (N - 2) * 4
+		addu	$s5, $t0, $s5		# s5 = t0 + N * (N - 2) * 4: Pointer to the last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	
 		## Right Loop Setup
@@ -141,7 +143,7 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		### Row Loop End
 		
 		swc1	$f10, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
-		bne	$t2, $s5, column_loop
+		bne	$t2, $s5, column_loop	# Loop if current col elem was not the last one
 		addiu	$t2, $t2, 96		# Point t2 to next col element
 		## Column Loop End
 		
@@ -151,7 +153,25 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		addiu	$t0, $t0, 100		# t0 += (N + 1) * 4. Point t0 to next pivot element.
 		# Pivot Loop End
 		
-		swc1	$f11, 0($t0)		# Pivot loop is only run N-1 times. This sets pivot element N to 1.
+		# Run row loop on the last row
+		addiu	$t1, $t0, 4		# t1: pointer to current element on row
+		lwc1	$f1, 0($t1)		# f1: current element on row
+		lwc1	$f0, 0($t0)		# f0: current pivot element
+		div.s	$f1, $f1, $f0		# f1 = f1 / f0
+		swc1	$f1, 0($t1)		# Store
+		swc1	$f11, 0($t0)		# Set pivot element to 1.
+		# Row loop end
+		
+		# Zero loop setup
+		addiu	$t0, $t0, 96		# t0: Last elem
+		# Zero loop: Set all elements except the rightmost on the last row to 0.
+zero_loop:	addiu	$t1, $t1, 4		# Point current element pointer to 1.
+		bne	$t0, $t1, zero_loop	# If current elem is not the last one, then branch.
+		swc1	$f10, 0($t1)		# Store current elem
+		# Zero loop end
+		
+		swc1	$f11, 4($t1)		# Set the last elem on last row to 1.
+		
 		
 		
 		###### ELIMINATE IMPLEMENTATION END
