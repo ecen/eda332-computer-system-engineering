@@ -56,7 +56,7 @@ eliminate:
 		## Imortant M*B must be equal to N
 		# $a0  - base address of matrix (A)
 		# $a1 - Number of elements per row/column (N)
-		# $a2 - Number of blocks per row/column (B)
+		# $a2 - Number of blocks per row/column (B) / (N+1)*4
 		# $a3 - Number of element per block row/column (M)
 		#----------------------------------------
 		#s0 - N*4	/I
@@ -70,10 +70,10 @@ eliminate:
 		#-----------------------------------------
 		#t0 - current block-row pointer
 		#t1 - last block in row
-		#t2 - tmp register
+		#t2 - tmp
 		#t3 - current block-col pointer
 		#t4 - last block in row
-		#t5 -  Min((I + 1)* M - 1, (J + 1) * M - 1 = (Min(I, J)+1) * M - 1
+		#t5 - min((I+1)*M-1, (J+1)*M-1)
 		#t6 - tmp
 		#t7 - tmp
 		#t8 - (I+1)*M-1 	/tmp
@@ -87,6 +87,9 @@ eliminate:
 		#sp - i
 		
 		#Constants:
+		addiu $a2, $a1, 1
+		sll $a2, $a2, 2		#a2 = (N+1)*4
+		
 		sll $s0, $a1, 2		#N*4
 		
 		mulu $s1, $s0, $a1	#N*N*4
@@ -131,26 +134,27 @@ col_loop:	#row_loop loops over t0->,s0 (=I) to $s7-> (Last row first block, poin
 		
 		#Set up pivot loop
 		slt $t6, $s1, $s0	# t6 = J<I
-		sle $t7, $s0, $s1	# t7 = I<=J
 		addiu $t8, $s0, 1	# t8 = (I+1)
 		mulu $t8, $t8, $a3	# t8 = (I+1) * M
 		subiu $t8, $t8, 1	# t8 = (I+1) * M - 1
 		mulu $t8, $t6, $t8	# v0 = t6*t8 = (J>I)*((I+1)*M - 1)
 		
+		sle $t7, $s0, $s1	# t7 = I<=J
 		addiu $t5, $s1, 1	#t5 = (J+1)
 		mulu $t5, $t5, $a3	#t5 = (J+1)* M
-		subiu $t5, $t5, 1	#t5 = (J+1)* M - 1
-		mulu $t5, $t7, $t3	#v1 = t7*t3 = (I<=J)*((J+1)* M - 1)
+		subiu $v1, $t5, 1	#v1 = (J+1)* M - 1
+		mulu $t5, $t7, $v1	#t5 = t7*v1 = (I<=J)*((J+1)* M - 1)
 		
 		addu $t5, $v1, $v0	#t5 = t6*t0 + t7*t3 = ((J>I) * (I+1)*M-1) + ((I<=J) * (J+1)*M-1) = min((I+1)*M-1, (J+1)*M-1)
 		#t5 = min((I+1)*M-1, (J+1)*M-1)
-		#t8 = (I+1)*M-1
+		#v1 = (J+1) * M - 1
+		#t8 = (I+1) * M - 1
 		
 		addu $k0, $zero, $zero	#k0=0 (Might not be necessary)
-
-pivot_loop:	#loop over k0 (=k) to t5
+		addu $t2, $a0, $zero	#Set t2 to the current pivot-pointer
+pivot_loop:	#loop over k0 (=k) to t5 (with pointer t2)
 		
-		#tmpreg: t6,t7,xt8x,v0,v1
+		#tmpreg: t2,t6,t7,xt8x,v0,xv1x
 		#if(k>=I*M && k<=(I+1)*M-1)
 		mulu $t6, $a3, $s0
 		sge $t6, $k0, $t6
@@ -158,12 +162,24 @@ pivot_loop:	#loop over k0 (=k) to t5
 		bne $t6, $t7 done_if	# If t6 = t7 then they are both 1, since they can't be zero at the same time.
 		
 		#Begin if
-		#tmpreg: t6,t7,t8,v0,v1
+		#tmpreg: t2,t6,t7,t8,v0,xv1x
 		
 		
+		
+		
+		#pivcalc loop setup
+		jal maxkj		#max($k0+1,$s0*$a3) -> $k1 (uses t6,t7,t8)
+		
+pivcalc_loop:	#loop over k1 to v1
+		
+		
+		#End pivcalc loop
+		bne $k1, $v1, pivcalc_loop
+		addiu $k1,$k1,1
 done_if:	
 		
 		#End pivot loop
+		addu $t2, $t2, $a2
 		bne $k0, $t5, pivot_loop
 		addiu $k0, $k0, 1
 		
@@ -195,25 +211,25 @@ done_if:
 
 
 ################################################################################
-#maxkj - Max(k+1, J*M) = Max($k0+1,$s0*$a3) -> $v0 /Uses t6, t7, $t8, $v0
+#maxkj - Max(k+1, J*M) = Max($k0+1,$s0*$a3) -> $k1 /Uses t6, t7, t8,k1
 maxkj:		
 		
 		addiu $t6, $k0, 1	#t6 = k0+1 = k+1
 		mulu $t7, $s0, $a3	#v0 = s0*a3 = J*M
 		
 		slt $t8, $t7, $t6	#t8 = s0<t6 = s0*a3 < k0+1 = J*M < k+1
-		sle $v0, $t6, $s0	#v0 = t6<=s0 = k0+1 <= s0*a3 = k+1 <= J*M
+		sle $k1, $t6, $s0	#v0 = t6<=s0 = k0+1 <= s0*a3 = k+1 <= J*M
 		
 		mulu $t6, $t6, $t8	#t6 = (k0+1)*(s0*a3 < k0+1) = (k+1) * (J*M < k+1)
-		mulu $t7, $t7, $v0	#t7 = (s0*a3)*(k0+1 <= s0*a3) = (J*M) * (k+1 <= J*M)
+		mulu $t7, $t7, $k1	#t7 = (s0*a3)*(k0+1 <= s0*a3) = (J*M) * (k+1 <= J*M)
 		
-		addu $v0, $t6, $t7	#v0 = Max($k0+1,$s0*$a3) = Max(k+1, I*M)
-		
+		addu $k1, $t6, $t7	#v0 = Max($k0+1,$s0*$a3) = Max(k+1, I*M)
+		jr $ra
 
 
 
 
-#maxki - Max(k+1, I*M) = Max($k0+1,$s0*$a3) -> $v0 /Uses t6, t7, $t8, $v0
+#maxki - Max(k+1, I*M) = Max($k0+1,$s0*$a3) -> $k1 /Uses t6, t7, $t8, k1
 #Almost the same as maxkj, could just use one...
 maxki:		
 		
@@ -221,13 +237,13 @@ maxki:
 		mulu $t7, $s1, $a3	#v0 = s0*a3 = J*M
 		
 		slt $t8, $t7, $t6	#t8 = t7<t6 = s0*a3 < k0+1 = J*M < k+1
-		sle $v0, $t6, $t7	#v0 = t6<=t7 = k0+1 <= s0*a3 = k+1 <= J*M
+		sle $k1, $t6, $t7	#v0 = t6<=t7 = k0+1 <= s0*a3 = k+1 <= J*M
 		
 		mulu $t6, $t6, $t8	#t6 = (k0+1)*(s1*a3 < k0+1) = (k+1) * (J*M < k+1)
-		mulu $t7, $t7, $v0	#t7 = (s1*a3)*(k0+1 <= s1*a3) = (J*M) * (k+1 <= J*M)
+		mulu $t7, $t7, $k1	#t7 = (s1*a3)*(k0+1 <= s1*a3) = (J*M) * (k+1 <= J*M)
 		
-		addu $v0, $t6, $t7	#v0 = Max($k0+1,$s1*$a3) = Max(k+1, I*M)
-
+		addu $k1, $t6, $t7	#v0 = Max($k0+1,$s1*$a3) = Max(k+1, I*M)
+		jr $ra
 
 ################################################################################
 
