@@ -54,12 +54,12 @@ eliminate:
 		####Eliminate implementation
 		## Args
 		## Imortant M*B must be equal to N
-		# $a0  - base address of matrix (A)
+		# $a0 - base address of matrix (A)
 		# $a1 - Number of elements per row/column (N)
-		# $a2 - Number of blocks per row/column (B) / (N+1)*4
+		# $a2 - Number of blocks per row/column (B)   /   (N+1)*4
 		# $a3 - Number of element per block row/column (M)
 		#----------------------------------------
-		#s0 - N*4	/I
+		#s0 - I
 		#s1 - N*N*4	/J
 		#s2 - last element pointer
 		#s3 - ((N+1)*(M-1))*4	Length from top corner of block to bottom corner of block.
@@ -70,7 +70,7 @@ eliminate:
 		#-----------------------------------------
 		#t0 - current block-row pointer
 		#t1 - last block in row
-		#t2 - tmp
+		#t2 - pivot pointer
 		#t3 - current block-col pointer
 		#t4 - last block in row
 		#t5 - min((I+1)*M-1, (J+1)*M-1)
@@ -85,14 +85,15 @@ eliminate:
 		#k0 - k
 		#k1 - j
 		#sp - i
+		#gp - N*4
 		
 		#Constants:
 		addiu $a2, $a1, 1
 		sll $a2, $a2, 2		#a2 = (N+1)*4
 		
-		sll $s0, $a1, 2		#N*4
+		sll $gp, $a1, 2		#N*4
 		
-		mulu $s1, $s0, $a1	#N*N*4
+		mulu $s1, $gp, $a1	#N*N*4
 		
 		mulu $t2, $s0, $a3	#M*N*4
 		
@@ -154,7 +155,7 @@ col_loop:	#row_loop loops over t0->,s0 (=I) to $s7-> (Last row first block, poin
 		addu $t2, $a0, $zero	#Set t2 to the current pivot-pointer
 pivot_loop:	#loop over k0 (=k) to t5 (with pointer t2)
 		
-		#tmpreg: t2,t6,t7,xt8x,v0,xv1x
+		#tmpreg: t6,t7,xt8x,v0,xv1x
 		#if(k>=I*M && k<=(I+1)*M-1)
 		mulu $t6, $a3, $s0
 		sge $t6, $k0, $t6
@@ -162,7 +163,7 @@ pivot_loop:	#loop over k0 (=k) to t5 (with pointer t2)
 		bne $t6, $t7 done_if	# If t6 = t7 then they are both 1, since they can't be zero at the same time.
 		
 		#Begin if
-		#tmpreg: t2,t6,t7,t8,v0,xv1x
+		#tmpreg: t6,t7,t8,v0,xv1x
 		
 		
 		
@@ -170,10 +171,19 @@ pivot_loop:	#loop over k0 (=k) to t5 (with pointer t2)
 		#pivcalc loop setup
 		jal maxkj		#max($k0+1,$s0*$a3) -> $k1 (uses t6,t7,t8)
 		
+		
+		
+		
+		#pointer to A[k][j]
+		mulu $t2, $a1, $gp
+		sll $t6, $k1, 2
+		addu $t2, $t2, $t6
+		
 pivcalc_loop:	#loop over k1 to v1
 		
 		
 		#End pivcalc loop
+		addiu $t2, $t2, 4
 		bne $k1, $v1, pivcalc_loop
 		addiu $k1,$k1,1
 done_if:	
