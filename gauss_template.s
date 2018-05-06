@@ -50,7 +50,7 @@ eliminate:
 		# t0: Pointer to current pivot.				Pivot Loop
 		# t1: Pointer to current element on row.		Right Loop
 		# t2: Pointer to current col element.			Pivot Loop
-		# t3: Pointer offset from col elem to cur row elem.	Column Loop
+		# t3: 
 		# t4: Pointer to current element on current row.	Row Loop
 		# t5: Pointer to current element on pivot row.		Row Loop
 		# t6: 
@@ -59,10 +59,10 @@ eliminate:
 		# t9: Reserved for use as temp register.		TEMP
 		# -------------------------------------------------------------------------
 		# s0 = (N - 1) * 4					CONST
-		# 
-		# 
+		# s1: 
+		# s2: 
 		# s3: Pointer to second last pivot element.		Pivot Loop
-		# s4: Pointer to last elem of current row.		Pivot Loop
+		# s4: 
 		# s5: Pointer to last column elem in curr pivot col.	Pivot Loop
 		# s6: Pointer to first element in current row.		Pivot Loop
 		# s7: Pointer to last element of row.			Pivot Loop
@@ -99,7 +99,8 @@ eliminate:
 		
 		# Pivot Loop Setup
 		addiu	$t0, $a0, 0		# t0: pointer to current pivot
-		addiu	$s6, $a0, 0		# s6: pointer to first element in current row
+		#addiu	$s6, $a0, 0		# s6: pointer to first element in current row
+		addiu	$s7, $a0, 92		# s7: Pointer to last element of row.
 		li	$s5, 2112		# N * (N - 2) * 4
 		addu	$s5, $t0, $s5		# s5 = t0 + N * (N - 2) * 4: Pointer to the last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
@@ -107,7 +108,6 @@ pivot_loop:
 		## Right Loop Setup
 		lwc1	$f0, 0($t0)		# f0 = current pivot element
 		addiu	$t1, $t0, 4		# t1: pointer to current element on row
-		addiu	$s7, $s6, 92		# s7: Pointer to last element of row.
 		div.s	$f2, $f11, $f0
 		## Right Loop: Loops over all elements on pivot row to the right of pivot element
 right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
@@ -122,24 +122,22 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
-		addiu	$s4, $s7, 0		# s4 = last element of pivot row: Pointer to the last element of current row_loop row.
 		addiu	$t2, $t0, 96		# t2 = t0 + N * 4: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
-column_loop:	lwc1	$f6, 0($t2)		# f6: current col element	# TODO Column loop is getting about 11 D-Cache misses each iteration
+column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop Setup
-		li	$t3, 4			# t3: Pointer offset from column element to current row element
-		addiu	$s4, $s4, 96		# Point s4 to last element of next row
+		addiu	$t5, $t0, 4		# t5: Pointer to current element on pivot row	
+		addiu	$t4, $t2, 4		# t4: Pointer to current element on current row.
 		### Row Loop: Iterate over each element in the row to the the right of C
-row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row 
-		addu	$t5, $t0, $t3		# t5: Pointer to current element on pivot row	
-		lwc1	$f5, 0($t5)		# f5: current pivot row element
+row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		lwc1	$f4, 0($t4)		# f4 = A[i][j]
 		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
 		sub.s	$f4, $f4, $f5		# f4 -= f5
 		swc1	$f4, 0($t4)		# Store
 		
-		bne	$t4, $s4, row_loop
-		addiu	$t3, $t3, 4		# Increase row element offset to point to next row element
+		addiu	$t4, $t4, 4
+		bne	$t5, $s7, row_loop	# Branch if current pivot row elem was not the last one
+		addiu	$t5, $t5, 4		# Increase row element offset to point to next row element
 		### Row Loop End
 		
 		swc1	$f10, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
@@ -148,7 +146,7 @@ row_loop:	addu	$t4, $t2, $t3		# t4: Pointer to current element on current row
 		## Column Loop End
 		
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
-		addiu	$s6, $s6, 96		# s6 += N * 4. Point s6 to first element on next row.
+		addiu	$s7, $s7, 96		# s7 += N * 4. Point s7 to last element on next row.
 		bne	$t0, $s3, pivot_loop	# Loop if current pivot was not the last element
 		addiu	$t0, $t0, 100		# t0 += (N + 1) * 4. Point t0 to next pivot element.
 		# Pivot Loop End
