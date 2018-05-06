@@ -28,10 +28,10 @@ eliminate:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 140K Cycles, Performance: 1082
+		# 83674 Cycles, Performance: 649
 		# I Cache: Direct, 8 blocks, block size 4
 		# D-Cache: 2-Way, 16 blocks, block size 4
-		# Memory 30/6, write buffer 8
+		# Memory 14/3, write buffer 8
 		
 		# REGISTER USAGE TABLE
 		#
@@ -117,9 +117,8 @@ right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		bne	$s7, $t1, right_loop
 		addiu	$t1, $t1, 4
 		## Right Loop End
-		
 		swc1	$f11, 0($t0)		# pivot = 1
-		
+				
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
 		addiu	$t2, $t0, 96		# t2 = t0 + N * 4: Pointer to current col element
@@ -139,7 +138,7 @@ row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		bne	$t5, $s7, row_loop	# Branch if current pivot row elem was not the last one
 		addiu	$t5, $t5, 4		# Increase row element offset to point to next row element
 		### Row Loop End
-		
+
 		swc1	$f10, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
 		bne	$t2, $s5, column_loop	# Loop if current col elem was not the last one
 		addiu	$t2, $t2, 96		# Point t2 to next col element
