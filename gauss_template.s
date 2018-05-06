@@ -175,15 +175,17 @@ pivot_loop:	#loop over k0 (=k) to t5 (with pointer t2)
 		
 		
 		#pointer to A[k][j]
-		mulu $t2, $a1, $gp
+		mulu $t7, $a1, $gp
 		sll $t6, $k1, 2
-		addu $t2, $t2, $t6
+		addu $t7, $t2, $t6
 		
-pivcalc_loop:	#loop over k1 to v1
+pivcalc_loop:	#loop over k1 to v1 with pointer t7
+		#tmpreg: t6,xt7x,t8,v0,xv1x
+		
 		
 		
 		#End pivcalc loop
-		addiu $t2, $t2, 4
+		addiu $t7, $t7, 4
 		bne $k1, $v1, pivcalc_loop
 		addiu $k1,$k1,1
 done_if:	
