@@ -14,7 +14,7 @@ start:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 83674 Cycles, Performance: 649
+		# 83523 Cycles, Performance: 649
 		# I Cache: Direct, 8 blocks, block size 4
 		# D-Cache: 2-Way, 16 blocks, block size 4
 		# Memory 14/3, write buffer 8
@@ -70,15 +70,11 @@ start:
 		# Constants
 		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
 		lwc1	$f11, one		# f11 = 1 (float)
-		
 		addiu	$s3, $a0, 2100		# s3: Pointer to third last pivot element.
-		
 		
 		# Pivot Loop Setup
 		# addiu	$t0, $a0, 0		# t0: pointer to current pivot
-
 		addiu	$s7, $a0, 92		# s7: Pointer to last element of row.
-		#li	$s5, 2112
 		addiu	$s5, $a0, 2112		# s5: Pointer to the second last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	
@@ -89,7 +85,6 @@ pivot_loop:
 		## Right Loop: Loops over all elements on pivot row to the right of pivot element
 right_loop:	lwc1	$f1, 0($t1)		# f1: current element on row
 		mul.s	$f1, $f1, $f2		# f1 = f1 * (1 / f0)
-		#div.s	$f1, $f1, $f0		# f1 = f1 / f0
 		swc1	$f1, 0($t1)		# Store
 		bne	$s7, $t1, right_loop
 		addiu	$t1, $t1, 4
@@ -107,11 +102,11 @@ column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		lwc1	$f4, 0($t4)		# f4 = A[i][j]
+		addiu	$t4, $t4, 4		# Add here to utilize load-use. (But seems to make no difference...)
 		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
 		sub.s	$f4, $f4, $f5		# f4 -= f5
-		swc1	$f4, 0($t4)		# Store
+		swc1	$f4, -4($t4)		# Store. (-4 offset so we can add to t4 in load-use slot.)
 		
-		addiu	$t4, $t4, 4
 		bne	$t5, $s7, row_loop	# Branch if current pivot row elem was not the last one
 		addiu	$t5, $t5, 4		# Increase row element offset to point to next row element
 		### Row Loop End
@@ -131,14 +126,14 @@ row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		
 		lwc1	$f1, 4($a0)		# f1: current element on row
 		lwc1	$f0, 0($a0)		# f0: current pivot element
+		addiu	$t2, $a0, 92		# ZERO LOOP SETUP: Utilize load-use time.
 		div.s	$f1, $f1, $f0		# f1 = f1 / f0
 		swc1	$f1, 4($a0)		# Store
 		swc1	$f11, 0($a0)		# Set pivot element to 1.
 		# Row loop end
 		
 		# Zero loop setup
-		
-		addiu	$t2, $a0, 92
+		# See above
 		# Zero loop: Set all elements except the rightmost on the last row to 0.
 zero_loop:	addiu	$a0, $a0, 4		# Point current element pointer to 1.
 		bne	$t2, $a0, zero_loop	# If current elem is not the last one, then branch.
