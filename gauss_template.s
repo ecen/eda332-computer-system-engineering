@@ -102,7 +102,7 @@ column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop: Iterate over each element in the row to the the right of C
 row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		lwc1	$f4, 0($t4)		# f4 = A[i][j]
-		addiu	$t4, $t4, 4		# Add here to utilize load-use. (But seems to make no difference...)
+		addiu	$t4, $t4, 4		# Adding here to utilize load-use. (But seems to make no difference...)
 		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
 		sub.s	$f4, $f4, $f5		# f4 -= f5
 		swc1	$f4, -4($t4)		# Store. (-4 offset so we can add to t4 in load-use slot.)
