@@ -14,7 +14,7 @@ start:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 83523 Cycles, Performance: 649
+		# 83247 Cycles, Performance: 646
 		# I Cache: Direct, 8 blocks, block size 4
 		# D-Cache: 2-Way, 16 blocks, block size 4
 		# Memory 14/3, write buffer 8
@@ -80,6 +80,7 @@ start:
 pivot_loop:	
 		## Right Loop Setup
 		lwc1	$f0, 0($a0)		# f0 = current pivot element
+		swc1	$f11, 0($a0)		# pivot = 1
 		addiu	$t1, $a0, 0		# t1: pointer to current element on row. Natural t1 = a0 + 4 but +0 to be able to utilize load-use in right_loop.
 		div.s	$f2, $f11, $f0
 		## Right Loop: Loops over all elements on pivot row to the right of pivot element
@@ -89,7 +90,6 @@ right_loop:	lwc1	$f1, 4($t1)		# f1: current element on row. Offset by 4 to utili
 		bne	$t1, $s7, right_loop
 		swc1	$f1, 0($t1)		# Store. No offset because t1 has now been increased.
 		## Right Loop End
-		swc1	$f11, 0($a0)		# pivot = 1
 				
 		## Column Loop Setup
 		# s5: Pointer to the last element in the column
