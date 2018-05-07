@@ -74,14 +74,17 @@ start:
 		
 		# Constants
 		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
-		lwc1	$f11, one		# f11 = 1
+		lwc1	$f11, one		# f11 = 1 (float)
 		
-		la	$s3, ThirdLastPiv	# s3: Pointer to third last pivot element.
+		addiu	$s3, $a0, 2100		# s3: Pointer to third last pivot element.
+		
 		
 		# Pivot Loop Setup
-		li	$s7, 268501192		# s7: Pointer to last element of row.
-		la	$s5, LastRowFirstCol	# Pointer to the last column element in current pivot col
+		# addiu	$t0, $a0, 0		# t0: pointer to current pivot
 
+		addiu	$s7, $a0, 92		# s7: Pointer to last element of row.
+		#li	$s5, 2112
+		addiu	$s5, $a0, 2112		# s5: Pointer to the second last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	
 		#Used to make the bottom row minus two elements, zero
