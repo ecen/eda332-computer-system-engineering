@@ -56,7 +56,7 @@ start:
 		# s4: 
 		# s5: Pointer to last column elem in curr pivot col.	Pivot Loop
 		# s6: Pointer to second-to-last element of row		Pivot Loop
-		# s7: Pointer to last element of row.			Pivot Loop
+		# s7: 
 		# -------------------------------------------------------------------------
 		# f0: Current pivot element.				Pivot Loop
 		# f1: Current element on row.				Right Loop
@@ -79,7 +79,6 @@ start:
 		
 		# Pivot Loop Setup
 		addiu	$s6, $a0, 88		# s6: Pointer to second-to-last element of row.
-		addiu	$s7, $a0, 92		# s7: Pointer to last element of row.
 		addiu	$s5, $a0, 2112		# s5: Pointer to the second last column element in current pivot column.
 		#addiu	$t3, $zero, 0
 		# Pivot Loop: Loops over all pivot elements
@@ -87,14 +86,14 @@ pivot_loop:
 		## Right Loop Setup
 		lwc1	$f0, 0($a0)		# f0 = current pivot element
 		swc1	$f11, 0($a0)		# pivot = 1
-		addiu	$t1, $a0, 0		# t1: pointer to current element on row. Natural t1 = a0 + 4 but +0 to be able to utilize load-use in right_loop.
+		addiu	$t1, $a0, -4		# t1: pointer to current element on row. Natural t1 = a0 + 4 but +0 to be able to utilize load-use in right_loop.
 		div.s	$f2, $f11, $f0
 		## Right Loop: Loops over all elements on pivot row to the right of pivot element
-right_loop:	lwc1	$f1, 4($t1)		# f1: current element on row. Offset by 4 to utilize load use.
+right_loop:	lwc1	$f1, 8($t1)		# f1: current element on row. Offset by 4 to utilize load use.
 		addiu	$t1, $t1, 4		# Point to next element. Done here to utilize load-use.
 		mul.s	$f1, $f1, $f2		# f1 = f1 * (1 / f0)
-		bne	$t1, $s7, right_loop
-		swc1	$f1, 0($t1)		# Store. No offset because t1 has now been increased.
+		bne	$t1, $s6, right_loop
+		swc1	$f1, 4($t1)		# Store. No offset because t1 has now been increased.
 		## Right Loop End
 				
 		## Column Loop Setup
@@ -126,7 +125,6 @@ row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		xori	$t3, $t3, 4
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
 		addiu	$s6, $s6, 96		# s7 += N * 4. Point s7 to last element on next row.
-		addiu	$s7, $s7, 96		# s7 += N * 4. Point s7 to last element on next row.
 		bne	$a0, $s3, pivot_loop	# Loop if current pivot was not the last element
 		addiu	$a0, $a0, 100		# a0 += (N + 1) * 4. Point a0 to next pivot element.
 		# Pivot Loop End
