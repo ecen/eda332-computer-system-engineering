@@ -14,7 +14,7 @@ start:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 72611 Cycles, Performance: 563
+		# 72578 Cycles, Performance: 563
 		# I Cache: Direct, 8 blocks, block size 4
 		# D-Cache: 2-Way, 16 blocks, block size 4
 		# Memory 14/3, write buffer 8
@@ -66,8 +66,8 @@ start:
 		# f5: -- :: --
 		# f6: Current column element.				Column Loop
 		# f7: 
-		# f8: 
-		# f9: 
+		# f8: = 0 (double)
+		# f9: = 0 (double)
 		# f10 = 0 (float)					CONST
 		# f11 = 1 (float)					CONST
 		# -------------------------------------------------------------------------
@@ -135,7 +135,7 @@ row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		
 		lwc1	$f1, 4($a0)		# f1: current element on row
 		lwc1	$f0, 0($a0)		# f0: current pivot element
-		addiu	$t2, $a0, 92		# ZERO LOOP SETUP: Utilize load-use time.
+		addiu	$t2, $a0, 96		# ZERO LOOP SETUP: Utilize load-use time.
 		div.s	$f1, $f1, $f0		# f1 = f1 / f0
 		swc1	$f1, 4($a0)		# Store
 		swc1	$f11, 0($a0)		# Set pivot element to 1.
@@ -144,12 +144,12 @@ row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		# Zero loop setup
 		# See above
 		# Zero loop: Set all elements except the rightmost on the last row to 0.
-zero_loop:	addiu	$a0, $a0, 4		# Point current element pointer to 1.
+zero_loop:	addiu	$a0, $a0, 8		# Point current element pointer to 1.
 		bne	$t2, $a0, zero_loop	# If current elem is not the last one, then branch.
-		swc1	$f10, 4($a0)		# Store current elem
+		sdc1	$f8, 0($a0)		# Store current elem
 		# Zero loop end
 		
-		swc1	$f11, 8($a0)		# Set the last elem on last row to 1.
+		swc1	$f11, 4($a0)		# Set the last elem on last row to 1.
 		
 		
 		
