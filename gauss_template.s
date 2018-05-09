@@ -14,7 +14,7 @@ start:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 72578 Cycles, Performance: 563
+		# 71537 Cycles, Performance: 555
 		# I Cache: Direct, 8 blocks, block size 4
 		# D-Cache: 2-Way, 16 blocks, block size 4
 		# Memory 14/3, write buffer 8
@@ -103,7 +103,7 @@ column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop Setup
 		addu	$t5, $a0, $t3		# t5: Pointer to current element on pivot row	
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row.
-		### Row Loop: Iterate over each element in the row to the the right of C
+		### Row Loop: Iterate over each element in the row to the the right of C. Load two at a time,
 row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		ldc1	$f4, 0($t4)		# f4 = A[i][j], f5 = A[j][j]
 		addiu	$t4, $t4, 8		# Adding here to utilize load-use. (But seems to make no difference...)
@@ -111,7 +111,7 @@ row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		sub.s	$f4, $f4, $f2		# f4 -= f2
 		mul.s	$f3, $f3, $f6		# f3 = A[i][k+1] * A[k][j+1]
 		sub.s	$f5, $f5, $f3		# f5 -= f3
-		sdc1	$f4, -8($t4)		# Store. (-4 offset so we can add to t4 in load-use slot.)
+		sdc1	$f4, -8($t4)		# Store. (-8 offset so we can add to t4 in load-use slot.)
 		
 		bne	$t5, $s6, row_loop	# Branch if current pivot row elem was not the last one
 		addiu	$t5, $t5, 8		# Increase row element offset to point to next row element
@@ -131,8 +131,9 @@ row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		
 		# Run row loop on the last row
 		
-		lwc1	$f1, 4($a0)		# f1: current element on row
-		lwc1	$f0, 0($a0)		# f0: current pivot element
+		ldc1	$f0, 0($a0)		# Replaces the two following commented rows:
+		#lwc1	$f1, 4($a0)		# f1: current element on row
+		#lwc1	$f0, 0($a0)		# f0: current pivot element
 		addiu	$t2, $a0, 96		# ZERO LOOP SETUP: Utilize load-use time.
 		div.s	$f1, $f1, $f0		# f1 = f1 / f0
 		swc1	$f1, 4($a0)		# Store
