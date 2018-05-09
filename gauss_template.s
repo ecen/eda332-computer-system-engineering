@@ -14,7 +14,7 @@ start:
 		###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
-		# 83247 Cycles, Performance: 646
+		# 72611 Cycles, Performance: 563
 		# I Cache: Direct, 8 blocks, block size 4
 		# D-Cache: 2-Way, 16 blocks, block size 4
 		# Memory 14/3, write buffer 8
@@ -102,8 +102,6 @@ right_loop:	lwc1	$f1, 4($t1)		# f1: current element on row. Offset by 4 to utili
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop Setup
-		#addiu	$t5, $a0, 4		# t5: Pointer to current element on pivot row	
-		#addiu	$t4, $t2, 4		# t4: Pointer to current element on current row.
 		addu	$t5, $a0, $t3		# t5: Pointer to current element on pivot row	
 		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row.
 		### Row Loop: Iterate over each element in the row to the the right of C
