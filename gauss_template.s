@@ -33,7 +33,12 @@ start:
 		# -------------------------------------------------------------------------
 		# Nr: Description					Name Space (Approx)
 		# -------------------------------------------------------------------------
-		# t0: Pointer to current pivot.				Pivot Loop
+		# a0: Base address of matrix  /  pivot pointer
+		# a1: Number of elements per row
+		# a2:
+		# a3:
+		# -------------------------------------------------------------------------
+		# t0:
 		# t1: Pointer to current element on row.		Right Loop
 		# t2: Pointer to current col element.			Pivot Loop
 		# t3: 
@@ -44,13 +49,13 @@ start:
 		# t8: 
 		# t9: Reserved for use as temp register.		TEMP
 		# -------------------------------------------------------------------------
-		# s0 = (N - 1) * 4					CONST
+		# s0:
 		# s1: 
 		# s2: 
 		# s3: Pointer to second last pivot element.		Pivot Loop
 		# s4: 
 		# s5: Pointer to last column elem in curr pivot col.	Pivot Loop
-		# s6: Pointer to first element in current row.		Pivot Loop
+		# s6:
 		# s7: Pointer to last element of row.			Pivot Loop
 		# -------------------------------------------------------------------------
 		# f0: Current pivot element.				Pivot Loop
@@ -63,8 +68,8 @@ start:
 		# f7: 
 		# f8: 
 		# f9: 
-		# f10 = 0						CONST
-		# f11 = 1						CONST
+		# f10 = 0 (float)					CONST
+		# f11 = 1 (float)					CONST
 		# -------------------------------------------------------------------------
 		
 		# Constants
@@ -73,7 +78,6 @@ start:
 		addiu	$s3, $a0, 2100		# s3: Pointer to third last pivot element.
 		
 		# Pivot Loop Setup
-		# addiu	$t0, $a0, 0		# t0: pointer to current pivot
 		addiu	$s7, $a0, 92		# s7: Pointer to last element of row.
 		addiu	$s5, $a0, 2112		# s5: Pointer to the second last column element in current pivot column.
 		# Pivot Loop: Loops over all pivot elements
@@ -92,8 +96,7 @@ right_loop:	lwc1	$f1, 4($t1)		# f1: current element on row. Offset by 4 to utili
 		## Right Loop End
 				
 		## Column Loop Setup
-		# s5: Pointer to the last element in the column
-		addiu	$t2, $a0, 96		# t2 = t0 + N * 4: Pointer to current col element
+		addiu	$t2, $a0, 96		# t2: Pointer to current col element
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop Setup
@@ -119,7 +122,7 @@ row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
 		addiu	$s7, $s7, 96		# s7 += N * 4. Point s7 to last element on next row.
 		bne	$a0, $s3, pivot_loop	# Loop if current pivot was not the last element
-		addiu	$a0, $a0, 100		# t0 += (N + 1) * 4. Point t0 to next pivot element.
+		addiu	$a0, $a0, 100		# a0 += (N + 1) * 4. Point a0 to next pivot element.
 		# Pivot Loop End
 		
 		# Run row loop on the last row
