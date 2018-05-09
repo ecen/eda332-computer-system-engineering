@@ -41,7 +41,7 @@ start:
 		# t0:
 		# t1: Pointer to current element on row.		Right Loop
 		# t2: Pointer to current col element.			Pivot Loop
-		# t3: 
+		# t3: XOR variable					Pivot Loop
 		# t4: Pointer to current element on current row.	Row Loop
 		# t5: Pointer to current element on pivot row.		Row Loop
 		# t6: 
@@ -55,15 +55,15 @@ start:
 		# s3: Pointer to second last pivot element.		Pivot Loop
 		# s4: 
 		# s5: Pointer to last column elem in curr pivot col.	Pivot Loop
-		# s6:
+		# s6: Pointer to second-to-last element of row		Pivot Loop
 		# s7: Pointer to last element of row.			Pivot Loop
 		# -------------------------------------------------------------------------
 		# f0: Current pivot element.				Pivot Loop
 		# f1: Current element on row.				Right Loop
-		# f2:
-		# f3: 
+		# f2: A[i][k] * A[k][j]					Row Loop
+		# f3: -- :: --
 		# f4: A[i][j] - A[i][k] * A[k][j]			Row Loop
-		# f5: A[i][k] * A[k][j]					Row Loop
+		# f5: -- :: --
 		# f6: Current column element.				Column Loop
 		# f7: 
 		# f8: 
@@ -78,8 +78,10 @@ start:
 		addiu	$s3, $a0, 2100		# s3: Pointer to third last pivot element.
 		
 		# Pivot Loop Setup
+		addiu	$s6, $a0, 88		# s6: Pointer to second-to-last element of row.
 		addiu	$s7, $a0, 92		# s7: Pointer to last element of row.
 		addiu	$s5, $a0, 2112		# s5: Pointer to the second last column element in current pivot column.
+		#addiu	$t3, $zero, 0
 		# Pivot Loop: Loops over all pivot elements
 pivot_loop:	
 		## Right Loop Setup
@@ -100,18 +102,22 @@ right_loop:	lwc1	$f1, 4($t1)		# f1: current element on row. Offset by 4 to utili
 		## Column Loop: Iterate over each element C in pivot column below pivot element
 column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop Setup
-		addiu	$t5, $a0, 4		# t5: Pointer to current element on pivot row	
-		addiu	$t4, $t2, 4		# t4: Pointer to current element on current row.
+		#addiu	$t5, $a0, 4		# t5: Pointer to current element on pivot row	
+		#addiu	$t4, $t2, 4		# t4: Pointer to current element on current row.
+		addu	$t5, $a0, $t3		# t5: Pointer to current element on pivot row	
+		addu	$t4, $t2, $t3		# t4: Pointer to current element on current row.
 		### Row Loop: Iterate over each element in the row to the the right of C
-row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
-		lwc1	$f4, 0($t4)		# f4 = A[i][j]
-		addiu	$t4, $t4, 4		# Adding here to utilize load-use. (But seems to make no difference...)
-		mul.s	$f5, $f5, $f6		# f5 = A[i][k] * A[k][j]
-		sub.s	$f4, $f4, $f5		# f4 -= f5
-		swc1	$f4, -4($t4)		# Store. (-4 offset so we can add to t4 in load-use slot.)
+row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
+		ldc1	$f4, 0($t4)		# f4 = A[i][j], f5 = A[j][j]
+		addiu	$t4, $t4, 8		# Adding here to utilize load-use. (But seems to make no difference...)
+		mul.s	$f2, $f2, $f6		# f2 = A[i][k] * A[k][j]
+		sub.s	$f4, $f4, $f2		# f4 -= f2
+		mul.s	$f3, $f3, $f6		# f3 = A[i][k+1] * A[k][j+1]
+		sub.s	$f5, $f5, $f3		# f5 -= f3
+		sdc1	$f4, -8($t4)		# Store. (-4 offset so we can add to t4 in load-use slot.)
 		
-		bne	$t5, $s7, row_loop	# Branch if current pivot row elem was not the last one
-		addiu	$t5, $t5, 4		# Increase row element offset to point to next row element
+		bne	$t5, $s6, row_loop	# Branch if current pivot row elem was not the last one
+		addiu	$t5, $t5, 8		# Increase row element offset to point to next row element
 		### Row Loop End
 
 		swc1	$f10, 0($t2)		# A[i][k] = 0. (Set current col element = 0.)
@@ -119,7 +125,9 @@ row_loop:	lwc1	$f5, 0($t5)		# f5: current pivot row element
 		addiu	$t2, $t2, 96		# Point t2 to next col element
 		## Column Loop End
 		
+		xori	$t3, $t3, 4
 		addiu	$s5, $s5, 4		# Point last column element pointer to the next element on the last row.
+		addiu	$s6, $s6, 96		# s7 += N * 4. Point s7 to last element on next row.
 		addiu	$s7, $s7, 96		# s7 += N * 4. Point s7 to last element on next row.
 		bne	$a0, $s3, pivot_loop	# Loop if current pivot was not the last element
 		addiu	$a0, $a0, 100		# a0 += (N + 1) * 4. Point a0 to next pivot element.
@@ -234,6 +242,9 @@ newline:
 		.asciiz "\n"  			# newline
 one:
 		.float 1.0
+		
+		.float 0.0
+		
 ## Input matrix: (4x4) ##
 matrix_4x4:	
 		.float 57.0
