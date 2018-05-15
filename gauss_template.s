@@ -1,7 +1,7 @@
 ### Text segment
 		.text
 start:
-		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
+		la	$a0, matrix_24x24	# a0 = A (base address of matrix)
 		li	$a1, 24    		# a1 = N (number of elements per row)
 						# <debug>
 		#jal 	print_matrix	    	# print matrix before elimination
@@ -11,7 +11,7 @@ start:
 		
 		
 		
-		###### ELIMINATE IMPLEMENTATION
+eliminate:	###### ELIMINATE IMPLEMENTATION
 		
 		# PERFORMANCE RECORD
 		# 73925 Cycles, Performance: 554
@@ -63,9 +63,9 @@ start:
 		# f0: Current pivot element.				Pivot Loop
 		# f1: Current element on row.				Right Loop
 		# f2: A[i][k] * A[k][j]					Row Loop
-		# f3: -- :: --
+		# f3: A[i][k] * A[k][j]			(double load)	Row Loop
 		# f4: A[i][j] - A[i][k] * A[k][j]			Row Loop
-		# f5: -- :: --
+		# f5: A[i][j] - A[i][k] * A[k][j]	(double load)	Row Loop
 		# f6: Current column element.				Column Loop
 		# f7: 
 		# f8: = 0 (double)
@@ -75,15 +75,14 @@ start:
 		# -------------------------------------------------------------------------
 		
 		# Constants
-		#sub.s	$f10, $f10, $f10	# f10 = 0	#Probably not necessary. Gonna leave it as a comment anyway.
+		#sub.s	$f10, $f10, $f10	# f10 = 0		# Register is 0 by default. Line not really needed.
 		lwc1	$f11, one		# f11 = 1 (float)
 		addiu	$s3, $a0, 2100		# s3: Pointer to third last pivot element.
 		
 		# Pivot Loop Setup
 		addiu	$s6, $a0, 88		# s6: Pointer to second-to-last element of row.
 		addiu	$s5, $a0, 2112		# s5: Pointer to the second last column element in current pivot column.
-		#addiu	$t3, $zero, 0
-		# Pivot Loop: Loops over all pivot elements
+		# Pivot Loop: The main loop. Loops over all pivot elements
 pivot_loop:	
 		## Right Loop Setup
 		lwc1	$f0, 0($a0)		# f0 = current pivot element
@@ -100,7 +99,7 @@ right_loop:	lwc1	$f1, 8($t1)		# f1: current element on row. Offset by 4 to utili
 				
 		## Column Loop Setup
 		addiu	$t2, $a0, 96		# t2: Pointer to current col element
-		## Column Loop: Iterate over each element C in pivot column below pivot element
+		## Column Loop: Iterate over each element C in pivot column (the column below the pivot element)
 column_loop:	lwc1	$f6, 0($t2)		# f6: current col element.
 		### Row Loop Setup
 		addu	$t5, $a0, $t3		# t5: Pointer to current element on pivot row	
@@ -131,8 +130,8 @@ row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		addiu	$a0, $a0, 100		# a0 += (N + 1) * 4. Point a0 to next pivot element.
 		# Pivot Loop End
 		
-		# Run row loop on the last row
-		
+		# Run row loop on the second-to-last row.
+		# (This needs to be done outside pivot loop after last row computations were moved to zero_loop.)
 		ldc1	$f0, 0($a0)		# Replaces the two following commented rows:
 		#lwc1	$f1, 4($a0)		# f1: current element on row
 		#lwc1	$f0, 0($a0)		# f0: current pivot element
@@ -142,8 +141,7 @@ row_loop:	ldc1	$f2, 0($t5)		# f2: current pivot row element
 		swc1	$f11, 0($a0)		# Set pivot element to 1.
 		# Row loop end
 		
-		# Zero loop setup
-		# See above
+		# Zero loop setup: located in load-use slot above.
 		# Zero loop: Set all elements except the rightmost on the last row to 0.
 zero_loop:	addiu	$a0, $a0, 8		# Point current element pointer to 1.
 		bne	$t2, $a0, zero_loop	# If current elem is not the last one, then branch.
@@ -153,10 +151,7 @@ zero_loop:	addiu	$a0, $a0, 8		# Point current element pointer to 1.
 		swc1	$f11, 4($a0)		# Set the last elem on last row to 1.
 		
 		
-		
 		###### ELIMINATE IMPLEMENTATION END
-		
-		
 		
 		
 		#la	$a0, matrix_24x24	
