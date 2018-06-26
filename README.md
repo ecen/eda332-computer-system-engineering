@@ -1,3 +1,3 @@
-# EEM076 Gauss Elimination Algorithm
+# EDA332 Gauss Elimination Algorithm
 
-Repository for implementing a gauss elimination algorithm for MIPS in EEM076 Electric Circuits and Field, Chalmers, 2018.
+Repository for implementing a gauss elimination algorithm for MIPS in EDA332 Computer System Engineering (Datorsystemteknik) course at Chalmers, 2018.
